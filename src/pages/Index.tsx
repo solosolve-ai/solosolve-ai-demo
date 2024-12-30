@@ -1,127 +1,49 @@
-import { useState } from "react";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/AppSidebar";
-import { ComplaintCard } from "@/components/ComplaintCard";
-import { FilterBar } from "@/components/FilterBar";
-
-const complaints = [
-  {
-    id: "COM-001",
-    title: "Delayed Delivery",
-    description: "Package was supposed to arrive yesterday but still hasn't been delivered.",
-    status: "in-progress" as const,
-    date: "2024-02-20",
-    category: "Delivery",
-    priority: "high" as const,
-    customerName: "John Doe",
-    orderNumber: "ORD-12345",
-  },
-  {
-    id: "COM-002",
-    title: "Wrong Item Received",
-    description: "I received a different item than what I ordered.",
-    status: "new" as const,
-    date: "2024-02-19",
-    category: "Product",
-    priority: "medium" as const,
-    customerName: "Jane Smith",
-    orderNumber: "ORD-12346",
-  },
-  {
-    id: "COM-003",
-    title: "Missing Package",
-    description: "My package is marked as delivered but I haven't received it.",
-    status: "resolved" as const,
-    date: "2024-02-18",
-    category: "Delivery",
-    priority: "low" as const,
-    customerName: "Alice Johnson",
-    orderNumber: "ORD-12347",
-  },
-  {
-    id: "COM-004",
-    title: "Poor Customer Service",
-    description: "The customer service representative was unhelpful and rude.",
-    status: "new" as const,
-    date: "2024-02-21",
-    category: "Service",
-    priority: "high" as const,
-    customerName: "Bob Wilson",
-    orderNumber: "ORD-12348",
-  },
-];
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [priorityFilter, setPriorityFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState("all");
-
-  const filteredComplaints = complaints.filter((complaint) => {
-    const matchesSearch =
-      complaint.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      complaint.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      complaint.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      complaint.orderNumber.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesStatus = statusFilter === "all" || complaint.status === statusFilter;
-    const matchesPriority = priorityFilter === "all" || complaint.priority === priorityFilter;
-    const matchesCategory = categoryFilter === "all" || complaint.category === categoryFilter;
-    
-    return matchesSearch && matchesStatus && matchesPriority && matchesCategory;
-  });
+  const navigate = useNavigate();
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gray-50">
-        <AppSidebar />
-        <main className="flex-1 p-8">
-          <div className="max-w-7xl mx-auto">
-            <header className="mb-8">
-              <h1 className="text-3xl font-bold text-navy">Dashboard</h1>
-              <p className="text-gray-600 mt-2">Manage and track customer complaints</p>
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white p-4 rounded-lg shadow">
-                  <h3 className="text-sm font-medium text-gray-500">Total Complaints</h3>
-                  <p className="mt-2 text-3xl font-semibold">{complaints.length}</p>
-                </div>
-                <div className="bg-white p-4 rounded-lg shadow">
-                  <h3 className="text-sm font-medium text-gray-500">New</h3>
-                  <p className="mt-2 text-3xl font-semibold">
-                    {complaints.filter(c => c.status === "new").length}
-                  </p>
-                </div>
-                <div className="bg-white p-4 rounded-lg shadow">
-                  <h3 className="text-sm font-medium text-gray-500">In Progress</h3>
-                  <p className="mt-2 text-3xl font-semibold">
-                    {complaints.filter(c => c.status === "in-progress").length}
-                  </p>
-                </div>
-                <div className="bg-white p-4 rounded-lg shadow">
-                  <h3 className="text-sm font-medium text-gray-500">Resolved</h3>
-                  <p className="mt-2 text-3xl font-semibold">
-                    {complaints.filter(c => c.status === "resolved").length}
-                  </p>
-                </div>
-              </div>
-            </header>
-
-            <FilterBar
-              onSearchChange={setSearchQuery}
-              onStatusChange={setStatusFilter}
-              onPriorityChange={setPriorityFilter}
-              onCategoryChange={setCategoryFilter}
-            />
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredComplaints.map((complaint) => (
-                <ComplaintCard key={complaint.id} {...complaint} />
-              ))}
-            </div>
-          </div>
-        </main>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+      <div className="text-center mb-8">
+        <img
+          src="/lovable-uploads/7ce98f22-edb3-447e-bced-b38cae04687d.png"
+          alt="SoloSolve AI"
+          className="h-12 mx-auto mb-6"
+        />
+        <h1 className="text-4xl font-bold text-navy mb-4">
+          Welcome to SoloSolve AI
+        </h1>
+        <p className="text-gray-600 max-w-md mx-auto">
+          Select your role to access the complaint management system
+        </p>
       </div>
-    </SidebarProvider>
+      
+      <div className="flex flex-col gap-4 w-full max-w-xs">
+        <Button
+          onClick={() => navigate("/user")}
+          className="w-full py-6 text-lg"
+          variant="default"
+        >
+          Customer Portal
+        </Button>
+        <Button
+          onClick={() => navigate("/admin")}
+          className="w-full py-6 text-lg"
+          variant="outline"
+        >
+          Admin Dashboard
+        </Button>
+        <Button
+          onClick={() => navigate("/manager")}
+          className="w-full py-6 text-lg"
+          variant="outline"
+        >
+          Manager Dashboard
+        </Button>
+      </div>
+    </div>
   );
 };
 
