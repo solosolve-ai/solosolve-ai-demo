@@ -12,6 +12,7 @@ interface ComplaintCardProps {
   priority?: "low" | "medium" | "high";
   customerName: string;
   orderNumber: string;
+  showPriority?: boolean;
 }
 
 const statusColors = {
@@ -42,13 +43,14 @@ export function ComplaintCard({
   priority = "medium",
   customerName,
   orderNumber,
+  showPriority = false,
 }: ComplaintCardProps) {
   return (
     <Card className="p-6 hover:shadow-lg transition-shadow">
       <div className="flex justify-between items-start mb-4">
         <h3 className="font-semibold text-lg">{title}</h3>
         <div className="flex gap-2">
-          {priority && (
+          {showPriority && priority && (
             <Badge className={`${priorityColors[priority]} text-white`}>
               {priority}
             </Badge>
