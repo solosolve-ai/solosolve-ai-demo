@@ -11,9 +11,16 @@ import {
 interface FilterBarProps {
   onSearchChange: (value: string) => void;
   onStatusChange: (value: string) => void;
+  onPriorityChange: (value: string) => void;
+  onCategoryChange: (value: string) => void;
 }
 
-export function FilterBar({ onSearchChange, onStatusChange }: FilterBarProps) {
+export function FilterBar({ 
+  onSearchChange, 
+  onStatusChange,
+  onPriorityChange,
+  onCategoryChange 
+}: FilterBarProps) {
   return (
     <div className="flex flex-col md:flex-row gap-4 mb-6">
       <div className="relative flex-1">
@@ -33,6 +40,29 @@ export function FilterBar({ onSearchChange, onStatusChange }: FilterBarProps) {
           <SelectItem value="new">New</SelectItem>
           <SelectItem value="in-progress">In Progress</SelectItem>
           <SelectItem value="resolved">Resolved</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select onValueChange={onPriorityChange}>
+        <SelectTrigger className="w-full md:w-[180px]">
+          <SelectValue placeholder="Filter by priority" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Priorities</SelectItem>
+          <SelectItem value="high">High</SelectItem>
+          <SelectItem value="medium">Medium</SelectItem>
+          <SelectItem value="low">Low</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select onValueChange={onCategoryChange}>
+        <SelectTrigger className="w-full md:w-[180px]">
+          <SelectValue placeholder="Filter by category" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Categories</SelectItem>
+          <SelectItem value="Delivery">Delivery</SelectItem>
+          <SelectItem value="Product">Product</SelectItem>
+          <SelectItem value="Service">Service</SelectItem>
+          <SelectItem value="Other">Other</SelectItem>
         </SelectContent>
       </Select>
     </div>

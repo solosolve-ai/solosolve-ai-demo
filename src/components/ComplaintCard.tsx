@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { MessageCircle, Clock, Hash } from "lucide-react";
+import { MessageCircle, Clock, Hash, User, ShoppingCart } from "lucide-react";
 
 interface ComplaintCardProps {
   id: string;
@@ -10,6 +10,8 @@ interface ComplaintCardProps {
   date: string;
   category?: string;
   priority?: "low" | "medium" | "high";
+  customerName: string;
+  orderNumber: string;
 }
 
 const statusColors = {
@@ -38,6 +40,8 @@ export function ComplaintCard({
   date,
   category = "General",
   priority = "medium",
+  customerName,
+  orderNumber,
 }: ComplaintCardProps) {
   return (
     <Card className="p-6 hover:shadow-lg transition-shadow">
@@ -54,7 +58,7 @@ export function ComplaintCard({
           </Badge>
         </div>
       </div>
-      <p className="text-gray-600 mb-4">{description}</p>
+      <p className="text-gray-600 mb-4 line-clamp-2">{description}</p>
       <div className="flex flex-wrap gap-4 text-sm text-gray-500">
         <div className="flex items-center gap-1">
           <Hash className="h-4 w-4" />
@@ -67,6 +71,16 @@ export function ComplaintCard({
         <div className="flex items-center gap-1">
           <Clock className="h-4 w-4" />
           <span>{date}</span>
+        </div>
+      </div>
+      <div className="mt-4 pt-4 border-t flex flex-wrap gap-4 text-sm text-gray-500">
+        <div className="flex items-center gap-1">
+          <User className="h-4 w-4" />
+          <span>{customerName}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <ShoppingCart className="h-4 w-4" />
+          <span>{orderNumber}</span>
         </div>
       </div>
     </Card>
