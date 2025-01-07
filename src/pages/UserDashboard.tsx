@@ -45,6 +45,8 @@ const UserDashboard = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [urgencyFilter, setUrgencyFilter] = useState("all");
+  const [channelFilter, setChannelFilter] = useState("all");
 
   const filteredComplaints = complaints.filter((complaint) => {
     const matchesSearch =
@@ -105,6 +107,8 @@ const UserDashboard = () => {
               onStatusChange={setStatusFilter}
               onPriorityChange={setPriorityFilter}
               onCategoryChange={setCategoryFilter}
+              onUrgencyChange={setUrgencyFilter}
+              onChannelChange={setChannelFilter}
             />
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
