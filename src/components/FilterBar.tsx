@@ -13,13 +13,19 @@ interface FilterBarProps {
   onStatusChange: (value: string) => void;
   onPriorityChange: (value: string) => void;
   onCategoryChange: (value: string) => void;
+  onUrgencyChange: (value: string) => void;
+  onChannelChange: (value: string) => void;
+  showPriorityFilter?: boolean;
 }
 
 export function FilterBar({ 
   onSearchChange, 
   onStatusChange,
   onPriorityChange,
-  onCategoryChange 
+  onCategoryChange,
+  onUrgencyChange,
+  onChannelChange,
+  showPriorityFilter = false,
 }: FilterBarProps) {
   return (
     <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -42,27 +48,42 @@ export function FilterBar({
           <SelectItem value="resolved">Resolved</SelectItem>
         </SelectContent>
       </Select>
-      <Select onValueChange={onPriorityChange}>
-        <SelectTrigger className="w-full md:w-[180px]">
-          <SelectValue placeholder="Filter by priority" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Priorities</SelectItem>
-          <SelectItem value="high">High</SelectItem>
-          <SelectItem value="medium">Medium</SelectItem>
-          <SelectItem value="low">Low</SelectItem>
-        </SelectContent>
-      </Select>
+      {showPriorityFilter && (
+        <Select onValueChange={onPriorityChange}>
+          <SelectTrigger className="w-full md:w-[180px]">
+            <SelectValue placeholder="Filter by priority" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Priorities</SelectItem>
+            <SelectItem value="high">High</SelectItem>
+            <SelectItem value="medium">Medium</SelectItem>
+            <SelectItem value="low">Low</SelectItem>
+          </SelectContent>
+        </Select>
+      )}
       <Select onValueChange={onCategoryChange}>
         <SelectTrigger className="w-full md:w-[180px]">
           <SelectValue placeholder="Filter by category" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Categories</SelectItem>
-          <SelectItem value="Delivery">Delivery</SelectItem>
-          <SelectItem value="Product">Product</SelectItem>
-          <SelectItem value="Service">Service</SelectItem>
-          <SelectItem value="Other">Other</SelectItem>
+          <SelectItem value="Account Management">Account Management</SelectItem>
+          <SelectItem value="Billing">Billing & Payments</SelectItem>
+          <SelectItem value="Technical">Technical Issues</SelectItem>
+          <SelectItem value="Product">Product Issues</SelectItem>
+          <SelectItem value="Service">Service Issues</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select onValueChange={onChannelChange}>
+        <SelectTrigger className="w-full md:w-[180px]">
+          <SelectValue placeholder="Filter by channel" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Channels</SelectItem>
+          <SelectItem value="web">Web</SelectItem>
+          <SelectItem value="phone">Phone</SelectItem>
+          <SelectItem value="email">Email</SelectItem>
+          <SelectItem value="app">Mobile App</SelectItem>
         </SelectContent>
       </Select>
     </div>

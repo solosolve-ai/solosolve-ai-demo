@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { MessageCircle, Clock, Hash, User, ShoppingCart } from "lucide-react";
+import { MessageCircle, Clock, Hash, User, ShoppingCart, AlertTriangle, Tag } from "lucide-react";
 
 interface ComplaintCardProps {
   id: string;
@@ -8,11 +8,16 @@ interface ComplaintCardProps {
   description: string;
   status: "new" | "in-progress" | "resolved";
   date: string;
-  category?: string;
+  category: string;
+  subCategory?: string;
   priority?: "low" | "medium" | "high";
   customerName: string;
   orderNumber: string;
   showPriority?: boolean;
+  sentimentScore?: number;
+  urgencyLevel?: "low" | "medium" | "high";
+  channelOfComplaint?: string;
+  feedbackRating?: number;
 }
 
 const statusColors = {
@@ -39,11 +44,16 @@ export function ComplaintCard({
   description,
   status,
   date,
-  category = "General",
+  category,
+  subCategory,
   priority = "medium",
   customerName,
   orderNumber,
   showPriority = false,
+  sentimentScore,
+  urgencyLevel,
+  channelOfComplaint,
+  feedbackRating,
 }: ComplaintCardProps) {
   return (
     <Card className="p-6 hover:shadow-lg transition-shadow">
@@ -70,6 +80,12 @@ export function ComplaintCard({
           <MessageCircle className="h-4 w-4" />
           <span>{category}</span>
         </div>
+        {subCategory && (
+          <div className="flex items-center gap-1">
+            <Tag className="h-4 w-4" />
+            <span>{subCategory}</span>
+          </div>
+        )}
         <div className="flex items-center gap-1">
           <Clock className="h-4 w-4" />
           <span>{date}</span>
@@ -84,7 +100,35 @@ export function ComplaintCard({
           <ShoppingCart className="h-4 w-4" />
           <span>{orderNumber}</span>
         </div>
+        {channelOfComplaint && (
+          <div className="flex items-center gap-1">
+            <MessageCircle className="h-4 w-4" />
+            <span>via {channelOfComplaint}</span>
+          </div>
+        )}
+        {urgencyLevel && showPriority && (
+          <div className="flex items-center gap-1">
+            <AlertTriangle className="h-4 w-4" />
+            <span>Urgency: {urgencyLevel}</span>
+          </div>
+        )}
       </div>
+      {(sentimentScore !== undefined || feedbackRating !== undefined) && showPriority && (
+        <div className="mt-4 pt-4 border-t flex flex-wrap gap-4 text-sm text-gray-500">
+          {sentimentScore !== undefined && (
+            <div>
+              <span className="font-medium">Sentiment Score: </span>
+              <span>{sentimentScore.toFixed(2)}</span>
+            </div>
+          )}
+          {feedbackRating !== undefined && (
+            <div>
+              <span className="font-medium">Feedback Rating: </span>
+              <span>{feedbackRating}/5</span>
+            </div>
+          )}
+        </div>
+      )}
     </Card>
   );
 }
