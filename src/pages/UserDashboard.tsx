@@ -162,6 +162,11 @@ const UserDashboard = () => {
         <main className="flex-1 p-8">
           <div className="max-w-7xl mx-auto">
             <header className="mb-8">
+              <img
+                src="/lovable-uploads/7ce98f22-edb3-447e-bced-b38cae04687d.png"
+                alt="SoloSolve AI"
+                className="h-32 mx-auto mb-6"
+              />
               <button 
                 onClick={() => navigate('/')}
                 className="mb-4 p-2 rounded-full hover:bg-gray-200 transition-colors inline-flex items-center gap-2"
