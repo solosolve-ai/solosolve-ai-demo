@@ -2,7 +2,10 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ComplaintCard } from "@/components/ComplaintCard";
 import { FilterBar } from "@/components/FilterBar";
+import DashboardStats from "@/components/DashboardStats";
+import DashboardAnalytics from "@/components/DashboardAnalytics";
 import { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const complaints = [
   {
@@ -15,6 +18,10 @@ const complaints = [
     priority: "high" as const,
     customerName: "John Doe",
     orderNumber: "ORD-12345",
+    channelOfComplaint: "web",
+    urgencyLevel: "high" as const,
+    sentimentScore: -0.8,
+    feedbackRating: 2,
   },
   {
     id: "COM-002",
@@ -75,54 +82,64 @@ const AdminDashboard = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gray-50">
+      <div className="min-h-screen flex w-full bg-navy">
         <AppSidebar />
         <main className="flex-1 p-8">
           <div className="max-w-7xl mx-auto">
             <header className="mb-8">
-              <h1 className="text-3xl font-bold text-navy">Admin Dashboard</h1>
-              <p className="text-gray-600 mt-2">Manage all customer complaints</p>
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white p-4 rounded-lg shadow">
-                  <h3 className="text-sm font-medium text-gray-500">Total Complaints</h3>
-                  <p className="mt-2 text-3xl font-semibold">{complaints.length}</p>
-                </div>
-                <div className="bg-white p-4 rounded-lg shadow">
-                  <h3 className="text-sm font-medium text-gray-500">New</h3>
-                  <p className="mt-2 text-3xl font-semibold">
-                    {complaints.filter(c => c.status === "new").length}
-                  </p>
-                </div>
-                <div className="bg-white p-4 rounded-lg shadow">
-                  <h3 className="text-sm font-medium text-gray-500">In Progress</h3>
-                  <p className="mt-2 text-3xl font-semibold">
-                    {complaints.filter(c => c.status === "in-progress").length}
-                  </p>
-                </div>
-                <div className="bg-white p-4 rounded-lg shadow">
-                  <h3 className="text-sm font-medium text-gray-500">Resolved</h3>
-                  <p className="mt-2 text-3xl font-semibold">
-                    {complaints.filter(c => c.status === "resolved").length}
-                  </p>
-                </div>
-              </div>
+              <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
+              <p className="text-gray-400 mt-2">System-wide Complaint Management</p>
             </header>
 
-            <FilterBar
-              onSearchChange={setSearchQuery}
-              onStatusChange={setStatusFilter}
-              onPriorityChange={setPriorityFilter}
-              onCategoryChange={setCategoryFilter}
-              onUrgencyChange={setUrgencyFilter}
-              onChannelChange={setChannelFilter}
-              showPriorityFilter={true}
-            />
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredComplaints.map((complaint) => (
-                <ComplaintCard key={complaint.id} {...complaint} />
-              ))}
-            </div>
+            <Tabs defaultValue="overview" className="space-y-6">
+              <TabsList className="bg-navy-light">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="complaints">Complaints</TabsTrigger>
+                <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                <TabsTrigger value="settings">Settings</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="overview" className="space-y-6">
+                <DashboardStats complaints={complaints} />
+                <DashboardAnalytics complaints={complaints} />
+              </TabsContent>
+
+              <TabsContent value="complaints">
+                <FilterBar
+                  onSearchChange={setSearchQuery}
+                  onStatusChange={setStatusFilter}
+                  onPriorityChange={setPriorityFilter}
+                  onCategoryChange={setCategoryFilter}
+                  onUrgencyChange={setUrgencyFilter}
+                  onChannelChange={setChannelFilter}
+                  showPriorityFilter={true}
+                />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredComplaints.map((complaint) => (
+                    <ComplaintCard 
+                      key={complaint.id} 
+                      {...complaint}
+                      showPriority={true}
+                    />
+                  ))}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="analytics">
+                <div className="bg-navy-light p-6 rounded-lg">
+                  <h2 className="text-xl font-semibold text-white mb-4">Advanced Analytics</h2>
+                  <DashboardAnalytics complaints={complaints} />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="settings">
+                <div className="bg-navy-light p-6 rounded-lg">
+                  <h2 className="text-xl font-semibold text-white mb-4">System Settings</h2>
+                  <p className="text-gray-400">Configure system-wide settings and integrations.</p>
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </main>
       </div>
