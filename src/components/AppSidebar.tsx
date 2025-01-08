@@ -9,31 +9,34 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { useNavigate } from "react-router-dom";
 
 const items = [
   {
     title: "Dashboard",
-    url: "/",
+    path: "/user",
     icon: Home,
   },
   {
     title: "Complaints",
-    url: "#",
+    path: "/user/complaints",
     icon: MessageSquare,
   },
   {
     title: "Profile",
-    url: "#",
+    path: "/user/profile",
     icon: User,
   },
   {
     title: "Notifications",
-    url: "#",
+    path: "/user/notifications",
     icon: Bell,
   },
 ];
 
 export function AppSidebar() {
+  const navigate = useNavigate();
+
   return (
     <Sidebar>
       <SidebarContent className="bg-navy pt-6">
@@ -41,7 +44,7 @@ export function AppSidebar() {
           <img
             src="/lovable-uploads/7ce98f22-edb3-447e-bced-b38cae04687d.png"
             alt="SoloSolve AI"
-            className="h-8"
+            className="h-12" // Increased from h-8 to h-12 for bigger logo
           />
         </div>
         <SidebarGroup>
@@ -49,11 +52,12 @@ export function AppSidebar() {
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <a href={item.url} className="text-gray-300 hover:text-white">
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.title}</span>
-                    </a>
+                  <SidebarMenuButton
+                    onClick={() => navigate(item.path)}
+                    className="text-gray-300 hover:text-white cursor-pointer"
+                  >
+                    <item.icon className="h-5 w-5" />
+                    <span>{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

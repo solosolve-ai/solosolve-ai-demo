@@ -7,36 +7,51 @@ import { useState } from "react";
 const complaints = [
   {
     id: "COM-001",
-    title: "My Package is Late",
-    description: "I was supposed to receive my package yesterday but it hasn't arrived yet. The tracking number shows no updates for 48 hours.",
+    title: "Account Access Issues",
+    description: "Unable to log into my account after password reset. Need immediate assistance.",
     status: "new" as const,
     date: "2024-02-21",
-    category: "Delivery",
-    priority: "medium" as const,
+    category: "Account Management",
+    priority: "high" as const,
     customerName: "John Smith",
-    orderNumber: "ORD-12345"
+    orderNumber: "ORD-12345",
+    channelOfComplaint: "web"
   },
   {
     id: "COM-002",
-    title: "Damaged Product Received",
-    description: "The product arrived in damaged condition. The box was crushed and the item inside is broken.",
+    title: "Incorrect Billing Amount",
+    description: "Last month's bill shows incorrect charges. Need review and adjustment.",
     status: "in-progress" as const,
     date: "2024-02-20",
-    category: "Product",
-    priority: "high" as const,
-    customerName: "John Smith",
-    orderNumber: "ORD-12346"
+    category: "Billing",
+    priority: "medium" as const,
+    customerName: "Sarah Johnson",
+    orderNumber: "ORD-12346",
+    channelOfComplaint: "phone"
   },
   {
     id: "COM-003",
-    title: "Wrong Item Shipped",
-    description: "I received a different item than what I ordered. Need immediate replacement.",
-    status: "resolved" as const,
+    title: "App Crashes Frequently",
+    description: "Mobile app keeps crashing when trying to make a payment.",
+    status: "new" as const,
     date: "2024-02-19",
-    category: "Product",
+    category: "Technical Issues",
+    priority: "high" as const,
+    customerName: "Mike Brown",
+    orderNumber: "ORD-12347",
+    channelOfComplaint: "app"
+  },
+  {
+    id: "COM-004",
+    title: "Service Interruption",
+    description: "Experienced service outage for 2 hours. Need compensation.",
+    status: "resolved" as const,
+    date: "2024-02-18",
+    category: "Service Issues",
     priority: "medium" as const,
-    customerName: "John Smith",
-    orderNumber: "ORD-12347"
+    customerName: "Emma Wilson",
+    orderNumber: "ORD-12348",
+    channelOfComplaint: "email"
   }
 ];
 
@@ -58,8 +73,9 @@ const UserDashboard = () => {
     const matchesStatus = statusFilter === "all" || complaint.status === statusFilter;
     const matchesPriority = priorityFilter === "all" || complaint.priority === priorityFilter;
     const matchesCategory = categoryFilter === "all" || complaint.category === categoryFilter;
+    const matchesChannel = channelFilter === "all" || complaint.channelOfComplaint === channelFilter;
     
-    return matchesSearch && matchesStatus && matchesPriority && matchesCategory;
+    return matchesSearch && matchesStatus && matchesPriority && matchesCategory && matchesChannel;
   });
 
   const getStatusCounts = () => {
