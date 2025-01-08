@@ -38,7 +38,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarContent className="bg-white border-r border-gray-200 pt-6">
+      <SidebarContent className="bg-navy pt-6">
         <div className="px-6 mb-6">
           <img
             src="/lovable-uploads/7ce98f22-edb3-447e-bced-b38cae04687d.png"
@@ -53,7 +53,7 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     onClick={() => navigate(item.path)}
-                    className="text-gray-600 hover:text-primary hover:bg-gray-50 transition-colors cursor-pointer"
+                    className="text-gray-300 hover:text-white hover:bg-navy-light transition-colors cursor-pointer"
                   >
                     <item.icon className="h-5 w-5" />
                     <span>{item.title}</span>
