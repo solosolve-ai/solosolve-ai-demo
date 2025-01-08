@@ -1,10 +1,9 @@
-import { Home, MessageSquare, User, Bell, ArrowLeft } from "lucide-react";
+import { Home, MessageSquare, User, Bell } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -39,15 +38,8 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarContent className="bg-navy pt-6">
-        <div className="px-6 mb-6 flex items-center gap-4">
-          <button 
-            onClick={() => navigate('/')}
-            className="p-2 rounded-full hover:bg-gray-700 transition-colors"
-            aria-label="Back to main screen"
-          >
-            <ArrowLeft className="h-5 w-5 text-gray-300 hover:text-white" />
-          </button>
+      <SidebarContent className="bg-white border-r border-gray-200 pt-6">
+        <div className="px-6 mb-6">
           <img
             src="/lovable-uploads/7ce98f22-edb3-447e-bced-b38cae04687d.png"
             alt="SoloSolve AI"
@@ -61,7 +53,7 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     onClick={() => navigate(item.path)}
-                    className="text-gray-300 hover:text-white cursor-pointer"
+                    className="text-gray-600 hover:text-primary hover:bg-gray-50 transition-colors cursor-pointer"
                   >
                     <item.icon className="h-5 w-5" />
                     <span>{item.title}</span>

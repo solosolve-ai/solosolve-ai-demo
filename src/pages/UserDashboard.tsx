@@ -143,22 +143,30 @@ const UserDashboard = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gray-50">
+      <div className="min-h-screen flex w-full bg-[#F8FAFC]">
         <AppSidebar />
         <main className="flex-1 p-8">
           <div className="max-w-7xl mx-auto">
             <DashboardHeader />
-            <DashboardStats complaints={complaints} />
-            <DashboardAnalytics complaints={complaints} />
-            
-            <FilterBar
-              onSearchChange={setSearchQuery}
-              onStatusChange={setStatusFilter}
-              onPriorityChange={setPriorityFilter}
-              onCategoryChange={setCategoryFilter}
-              onUrgencyChange={setUrgencyFilter}
-              onChannelChange={setChannelFilter}
-            />
+            <div className="grid gap-6 mb-8">
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <DashboardStats complaints={complaints} />
+              </div>
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <DashboardAnalytics complaints={complaints} />
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+              <FilterBar
+                onSearchChange={setSearchQuery}
+                onStatusChange={setStatusFilter}
+                onPriorityChange={setPriorityFilter}
+                onCategoryChange={setCategoryFilter}
+                onUrgencyChange={setUrgencyFilter}
+                onChannelChange={setChannelFilter}
+              />
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredComplaints.map((complaint) => (
