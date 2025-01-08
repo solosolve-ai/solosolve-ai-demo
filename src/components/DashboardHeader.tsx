@@ -1,20 +1,6 @@
-import { ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-
 const DashboardHeader = () => {
-  const navigate = useNavigate();
-  
   return (
     <header className="mb-8">
-      <div className="flex items-center gap-4 mb-6">
-        <button 
-          onClick={() => navigate('/')}
-          className="p-2 rounded-full hover:bg-gray-200 transition-colors"
-          aria-label="Back to main screen"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-      </div>
       <h1 className="text-3xl font-bold text-navy">My Complaints</h1>
       <p className="text-gray-600 mt-2">Track and manage your complaints</p>
     </header>
