@@ -51,7 +51,7 @@ export function AppSidebar() {
           <img
             src="/lovable-uploads/7ce98f22-edb3-447e-bced-b38cae04687d.png"
             alt="SoloSolve AI"
-            className="h-12"
+            className="h-24"
           />
         </div>
         <SidebarGroup>
