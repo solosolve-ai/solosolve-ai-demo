@@ -162,19 +162,21 @@ const UserDashboard = () => {
         <main className="flex-1 p-8">
           <div className="max-w-7xl mx-auto">
             <header className="mb-8">
-              <img
-                src="/lovable-uploads/7ce98f22-edb3-447e-bced-b38cae04687d.png"
-                alt="SoloSolve AI"
-                className="h-32 mx-auto mb-6"
-              />
-              <button 
-                onClick={() => navigate('/')}
-                className="mb-4 p-2 rounded-full hover:bg-gray-200 transition-colors inline-flex items-center gap-2"
-                aria-label="Back to main screen"
-              >
-                <ArrowLeft className="h-5 w-5" />
-                <span>Back to Main Screen</span>
-              </button>
+              <div className="flex items-center gap-4 mb-6">
+                <button 
+                  onClick={() => navigate('/')}
+                  className="p-2 rounded-full hover:bg-gray-200 transition-colors inline-flex items-center gap-2"
+                  aria-label="Back to main screen"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                  <span>Back to Main Screen</span>
+                </button>
+                <img
+                  src="/lovable-uploads/7ce98f22-edb3-447e-bced-b38cae04687d.png"
+                  alt="SoloSolve AI"
+                  className="h-12"
+                />
+              </div>
               <h1 className="text-3xl font-bold text-navy">My Complaints</h1>
               <p className="text-gray-600 mt-2">Track and manage your complaints</p>
             </header>
