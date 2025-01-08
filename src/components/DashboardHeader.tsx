@@ -9,11 +9,10 @@ const DashboardHeader = () => {
       <div className="flex items-center gap-4 mb-6">
         <button 
           onClick={() => navigate('/')}
-          className="p-2 rounded-full hover:bg-gray-200 transition-colors inline-flex items-center gap-2"
+          className="p-2 rounded-full hover:bg-gray-200 transition-colors"
           aria-label="Back to main screen"
         >
           <ArrowLeft className="h-5 w-5" />
-          <span>Back to Main Screen</span>
         </button>
         <img
           src="/lovable-uploads/7ce98f22-edb3-447e-bced-b38cae04687d.png"
