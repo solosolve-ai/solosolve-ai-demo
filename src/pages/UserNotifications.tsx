@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Bell, CheckCircle, AlertCircle, Clock } from "lucide-react";
+import { Bell, CheckCircle, AlertCircle, Clock, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const notifications = [
   {
@@ -37,8 +38,19 @@ const notifications = [
 ];
 
 const UserNotifications = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="container mx-auto p-6">
+      <button 
+        onClick={() => navigate('/user')}
+        className="mb-6 p-2 rounded-full hover:bg-gray-200 transition-colors inline-flex items-center gap-2"
+        aria-label="Back to dashboard"
+      >
+        <ArrowLeft className="h-5 w-5" />
+        <span>Back to Dashboard</span>
+      </button>
+
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Notifications</h1>
         <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm">

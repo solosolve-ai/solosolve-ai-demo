@@ -3,6 +3,8 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { ComplaintCard } from "@/components/ComplaintCard";
 import { FilterBar } from "@/components/FilterBar";
 import { useState } from "react";
+import { ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const complaints = [
   {
@@ -52,10 +54,71 @@ const complaints = [
     customerName: "Emma Wilson",
     orderNumber: "ORD-12348",
     channelOfComplaint: "email"
+  },
+  {
+    id: "COM-005",
+    title: "Defective Product Received",
+    description: "The product arrived damaged and unusable.",
+    status: "new" as const,
+    date: "2024-02-22",
+    category: "Product",
+    priority: "high" as const,
+    customerName: "Alex Turner",
+    orderNumber: "ORD-12349",
+    channelOfComplaint: "web"
+  },
+  {
+    id: "COM-006",
+    title: "Wrong Product Specifications",
+    description: "Received a product with different specifications than ordered.",
+    status: "in-progress" as const,
+    date: "2024-02-22",
+    category: "Product",
+    priority: "medium" as const,
+    customerName: "Lisa Chen",
+    orderNumber: "ORD-12350",
+    channelOfComplaint: "phone"
+  },
+  {
+    id: "COM-007",
+    title: "Payment Gateway Error",
+    description: "Unable to complete transaction due to payment system error.",
+    status: "new" as const,
+    date: "2024-02-23",
+    category: "Technical Issues",
+    priority: "high" as const,
+    customerName: "David Park",
+    orderNumber: "ORD-12351",
+    channelOfComplaint: "web"
+  },
+  {
+    id: "COM-008",
+    title: "Website Loading Issues",
+    description: "Website is extremely slow and sometimes unresponsive.",
+    status: "new" as const,
+    date: "2024-02-23",
+    category: "Technical Issues",
+    priority: "medium" as const,
+    customerName: "Maria Garcia",
+    orderNumber: "ORD-12352",
+    channelOfComplaint: "web"
+  },
+  {
+    id: "COM-009",
+    title: "Mobile App Login Failed",
+    description: "Cannot login to mobile app after recent update.",
+    status: "new" as const,
+    date: "2024-02-23",
+    category: "Technical Issues",
+    priority: "high" as const,
+    customerName: "James Wilson",
+    orderNumber: "ORD-12353",
+    channelOfComplaint: "app"
   }
 ];
 
 const UserDashboard = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
@@ -99,6 +162,14 @@ const UserDashboard = () => {
         <main className="flex-1 p-8">
           <div className="max-w-7xl mx-auto">
             <header className="mb-8">
+              <button 
+                onClick={() => navigate('/')}
+                className="mb-4 p-2 rounded-full hover:bg-gray-200 transition-colors inline-flex items-center gap-2"
+                aria-label="Back to main screen"
+              >
+                <ArrowLeft className="h-5 w-5" />
+                <span>Back to Main Screen</span>
+              </button>
               <h1 className="text-3xl font-bold text-navy">My Complaints</h1>
               <p className="text-gray-600 mt-2">Track and manage your complaints</p>
             </header>

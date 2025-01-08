@@ -2,10 +2,23 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const UserProfile = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="container mx-auto p-6">
+      <button 
+        onClick={() => navigate('/user')}
+        className="mb-6 p-2 rounded-full hover:bg-gray-200 transition-colors inline-flex items-center gap-2"
+        aria-label="Back to dashboard"
+      >
+        <ArrowLeft className="h-5 w-5" />
+        <span>Back to Dashboard</span>
+      </button>
+
       <h1 className="text-3xl font-bold mb-6">My Profile</h1>
       
       <div className="grid gap-6 md:grid-cols-2">
@@ -66,6 +79,6 @@ const UserProfile = () => {
       </div>
     </div>
   );
-};
+}
 
 export default UserProfile;
