@@ -10,7 +10,7 @@ const Index = () => {
         <img
           src="/lovable-uploads/7ce98f22-edb3-447e-bced-b38cae04687d.png"
           alt="SoloSolve AI"
-          className="h-12 mx-auto mb-6"
+          className="h-24 mx-auto mb-6" // Changed from h-12 to h-24 to make the logo bigger
         />
         <h1 className="text-4xl font-bold text-navy mb-4">
           Welcome to SoloSolve AI
