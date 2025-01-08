@@ -3,8 +3,9 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { ComplaintCard } from "@/components/ComplaintCard";
 import { FilterBar } from "@/components/FilterBar";
 import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import DashboardHeader from "@/components/DashboardHeader";
+import DashboardStats from "@/components/DashboardStats";
+import DashboardAnalytics from "@/components/DashboardAnalytics";
 
 const complaints = [
   {
@@ -118,7 +119,6 @@ const complaints = [
 ];
 
 const UserDashboard = () => {
-  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
@@ -141,61 +141,16 @@ const UserDashboard = () => {
     return matchesSearch && matchesStatus && matchesPriority && matchesCategory && matchesChannel;
   });
 
-  const getStatusCounts = () => {
-    const counts = {
-      new: 0,
-      "in-progress": 0,
-      resolved: 0
-    };
-    complaints.forEach(complaint => {
-      counts[complaint.status]++;
-    });
-    return counts;
-  };
-
-  const statusCounts = getStatusCounts();
-
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gray-50">
         <AppSidebar />
         <main className="flex-1 p-8">
           <div className="max-w-7xl mx-auto">
-            <header className="mb-8">
-              <div className="flex items-center gap-4 mb-6">
-                <button 
-                  onClick={() => navigate('/')}
-                  className="p-2 rounded-full hover:bg-gray-200 transition-colors inline-flex items-center gap-2"
-                  aria-label="Back to main screen"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                  <span>Back to Main Screen</span>
-                </button>
-                <img
-                  src="/lovable-uploads/7ce98f22-edb3-447e-bced-b38cae04687d.png"
-                  alt="SoloSolve AI"
-                  className="h-12"
-                />
-              </div>
-              <h1 className="text-3xl font-bold text-navy">My Complaints</h1>
-              <p className="text-gray-600 mt-2">Track and manage your complaints</p>
-            </header>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <div className="text-sm font-medium text-gray-500">New</div>
-                <div className="mt-2 text-3xl font-bold text-blue-500">{statusCounts.new}</div>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <div className="text-sm font-medium text-gray-500">In Progress</div>
-                <div className="mt-2 text-3xl font-bold text-yellow-500">{statusCounts["in-progress"]}</div>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <div className="text-sm font-medium text-gray-500">Resolved</div>
-                <div className="mt-2 text-3xl font-bold text-green-500">{statusCounts.resolved}</div>
-              </div>
-            </div>
-
+            <DashboardHeader />
+            <DashboardStats complaints={complaints} />
+            <DashboardAnalytics complaints={complaints} />
+            
             <FilterBar
               onSearchChange={setSearchQuery}
               onStatusChange={setStatusFilter}
