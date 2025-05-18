@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
@@ -6,10 +5,10 @@ export default function Index() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-blue-50 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-navy flex flex-col items-center justify-center p-4 relative overflow-hidden">
       {/* Background animation elements */}
       <div className="absolute inset-0">
-        <div className="absolute top-20 left-20 w-64 h-64 bg-blue-100 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-[pulse_4s_ease-in-out_infinite]"></div>
+        <div className="absolute top-20 left-20 w-64 h-64 bg-navy-light rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-[pulse_4s_ease-in-out_infinite]"></div>
         <div className="absolute bottom-20 right-20 w-64 h-64 bg-primary rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-[pulse_6s_ease-in-out_infinite]"></div>
       </div>
 
@@ -19,10 +18,10 @@ export default function Index() {
           alt="SoloSolve AI"
           className="h-72 mx-auto mb-12 animate-fade-in hover:scale-105 transition-transform duration-300"
         />
-        <h1 className="text-4xl font-bold text-navy mb-4 animate-fade-in">
+        <h1 className="text-4xl font-bold text-white mb-4 animate-fade-in">
           Welcome to SoloSolve AI
         </h1>
-        <p className="text-lg text-navy-light mb-8 animate-fade-in">
+        <p className="text-lg text-gray-300 mb-8 animate-fade-in">
           Your AI-powered complaint management solution
         </p>
         <div className="space-y-4 max-w-md mx-auto">
