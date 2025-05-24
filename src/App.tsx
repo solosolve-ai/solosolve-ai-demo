@@ -8,6 +8,7 @@ import ManagerDashboard from "./pages/ManagerDashboard";
 import UserProfile from "./pages/UserProfile";
 import UserNotifications from "./pages/UserNotifications";
 import UserComplaints from "./pages/UserComplaints";
+import SubmitComplaint from "./pages/SubmitComplaint";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +22,7 @@ function App() {
           <Route path="/user/profile" element={<UserProfile />} />
           <Route path="/user/notifications" element={<UserNotifications />} />
           <Route path="/user/complaints" element={<UserComplaints />} />
+          <Route path="/user/submit-complaint" element={<SubmitComplaint />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/manager" element={<ManagerDashboard />} />
         </Routes>
