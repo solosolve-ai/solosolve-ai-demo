@@ -1,0 +1,268 @@
+The "Solosolver Chat" Implementation Plan
+This plan outlines a client-server architecture using a React frontend and a single, powerful Firebase Cloud Function as the backend. It assumes all data files (chroma.sqlite3, transaction_history...parquet) are bundled directly with the function code, eliminating the need for Cloud Storage.
+Phase 1: Project Setup & Data Bundling (The Foundation)
+This phase prepares your local development environment and ensures all data assets are correctly placed for deployment.
+Create the Project Folder Structure: On your local machine, create the following directory structure. This is critical for bundling your data.
+solosolver-firebase/
+└── functions/
+    ├── data/
+    │   ├── chroma.sqlite3
+    │   └── transaction_history_for_sft_gen_v5.parquet
+    ├── main.py
+    └── requirements.txt
+Use code with caution.
+Populate requirements.txt: Add all necessary Python libraries to functions/requirements.txt.
+firebase-functions
+firebase-admin
+pandas
+pyarrow
+torch
+transformers
+peft
+huggingface_hub
+chromadb
+sentence-transformers
+accelerate
+bitsandbytes
+Use code with caution.
+Txt
+Phase 2: Implementing the Backend Agent (Firebase Cloud Function)
+This is the core of the project. We will implement the entire backend logic within a single Python file, main.py, which will be deployed as the analyzeComplaint Cloud Function.
+Code the main.py file: This file will contain all your helper functions, model loading logic, and the main API endpoint. For simplicity within the Firebase IDE, paste all helper code directly into this file.
+# functions/main.py
+
+# --- Python Standard Library Imports ---
+import os
+import json
+from datetime import datetime
+import traceback
+
+# --- Third-party Library Imports ---
+import torch
+import pandas as pd
+import chromadb
+from firebase_admin import initialize_app
+from firebase_functions import https_fn
+from transformers import AutoConfig, AutoTokenizer
+from peft import PeftModel
+from huggingface_hub import hf_hub_download
+
+# --------------------------------------------------------------------------
+# PASTE ALL HELPER CODE HERE
+# For a clean deployment, paste the full, self-contained code for:
+# 1. class GemmaComplaintResolver(torch.nn.Module): ...
+# 2. def get_udp_summary_and_features_from_db(...): ...
+# 3. def get_policy_snippets_from_db(...): ...
+# 4. def chunk_policies(...): ...
+# 5. Your Gemma_PROMPT_BASE string variable.
+# 6. All mapping and reverse-mapping dictionaries for your labels
+#    (e.g., COMPLAINT_CATEGORY_MAP, REVERSE_COMPLAINT_MAP).
+# --------------------------------------------------------------------------
+
+# --- Firebase App Initialization ---
+initialize_app()
+
+# --- Global Variables & Caching ---
+# These are loaded only once per "warm" function instance, saving significant time.
+model = None
+tokenizer = None
+policy_collection = None
+udp_collection = None
+tran_hist_df = None
+
+# --- Path Definitions ---
+# Define paths to the data files bundled with the function.
+_RUN_DIR = os.path.dirname(os.path.realpath(__file__))
+LOCAL_CHROMA_PATH = os.path.join(_RUN_DIR, "data", "chroma.sqlite3")
+LOCAL_PARQUET_PATH = os.path.join(_RUN_DIR, "data", "transaction_history_for_sft_gen_v5.parquet")
+
+def setup_agent_dependencies():
+    """
+    Initializes the AI model and databases. This function is called at the start
+    of a request and will skip setup if the resources are already loaded in memory.
+    """
+    global model, tokenizer, policy_collection, udp_collection, tran_hist_df
+
+    # 1. Load AI Model (from Hugging Face)
+    if model is None:
+        print("Loading Gemma 3 model for the first time...")
+        STUDENT_MODEL_ID = "google/gemma-3-4b-it"
+        FINE_TUNED_REPO_ID = "ShovalBenjer/gemma-3-4b-fashion-multitask_A4000_v1"
+
+        tokenizer = AutoTokenizer.from_pretrained(FINE_TUNED_REPO_ID)
+        model_config = AutoConfig.from_pretrained(STUDENT_MODEL_ID, trust_remote_code=True)
+        
+        # This assumes GemmaComplaintResolver and num_labels_dict_global have been pasted above
+        base_model = GemmaComplaintResolver(
+            base_model_name_or_path=STUDENT_MODEL_ID,
+            num_labels_dict=num_labels_dict_global,
+            model_config_for_base_loading=model_config
+        )
+        head_path = hf_hub_download(repo_id=FINE_TUNED_REPO_ID, filename="classification_heads.pth")
+        base_model.load_state_dict(torch.load(head_path, map_location='cpu'), strict=False)
+        model = PeftModel.from_pretrained(base_model, FINE_TUNED_REPO_ID)
+        model.eval()
+        model.to("cpu") # Use CPU for broader compatibility in Cloud Functions
+        print("Model loaded successfully.")
+
+    # 2. Load Databases (from Bundled Files)
+    if policy_collection is None:
+        print(f"Loading databases from local path: {LOCAL_CHROMA_PATH}")
+        if not os.path.exists(LOCAL_CHROMA_PATH):
+            raise FileNotFoundError("Database files not found. Ensure they are in the /data folder.")
+        
+        chroma_client = chromadb.PersistentClient(path=LOCAL_CHROMA_PATH)
+        policy_collection = chroma_client.get_collection("policies")
+        udp_collection = chroma_client.get_collection("user_profiles")
+        tran_hist_df = pd.read_parquet(LOCAL_PARQUET_PATH)
+        print("Databases loaded successfully.")
+
+
+@https_fn.on_request(memory=https_fn.MemoryOption.G_B_4, cpu=2, timeout_sec=300)
+def analyzeComplaint(req: https_fn.Request) -> https_fn.Response:
+    """
+    The main API endpoint that orchestrates the entire agentic workflow.
+    """
+    try:
+        # This setup call is fast after the first "cold start"
+        setup_agent_dependencies()
+
+        # --- Step 1: Receive Request ---
+        req_data = req.get_json()
+        user_id = req_data.get("userId")
+        complaint_text = req_data.get("complaintText")
+        deep_search_active = req_data.get("deepSearchActive", False)
+
+        if not user_id or not complaint_text:
+            return https_fn.Response("Missing userId or complaintText", status=400)
+
+        # --- Step 2: Data Gathering ---
+        user_tran_hist = tran_hist_df[tran_hist_df['user_id'] == user_id]
+        udp_data = get_udp_summary_and_features_from_db(user_id, datetime.now().isoformat(), user_tran_hist, udp_collection)
+        policy_data = get_policy_snippets_from_db(complaint_text, policy_collection)
+
+        # --- Step 3: Prompt Construction ---
+        # Use placeholders for data not immediately available from the simple request
+        prompt = Gemma_PROMPT_BASE.format(
+            complaint_body_text=complaint_text,
+            user_profile_summary=udp_data['summary'],
+            retrieved_relevant_policies_text=policy_data['relevant_policies'],
+            retrieved_distractor_policies_text=policy_data['distractor_policies'],
+            complaint_title_text="(New Chat Complaint)",
+            complaint_rating_given="N/A",
+            complaint_verified_purchase="True",
+            complaint_timestamp_iso=datetime.now().isoformat(),
+            complaint_inferred_driver_for_gemma="N/A",
+            product_information_text="Unknown from chat, check user history.",
+            image_urls_list_text="[]",
+            simulated_purchase_date_text="Unknown from chat."
+        )
+
+        # --- Step 4: Model Inference ---
+        inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+        with torch.no_grad():
+            outputs = model(**inputs)
+
+        # --- Step 5: Process Model Output ---
+        classifications = {}
+        for task_name, _ in num_labels_dict_global.items():
+            logits = outputs[f"logits_{task_name}"]
+            prediction_index = torch.argmax(logits, dim=-1).item()
+            # Use your reverse maps (pasted above) to get the string label
+            reverse_map = globals().get(f"REVERSE_{task_name.upper()}_MAP")
+            classifications[task_name] = reverse_map.get(prediction_index, "Unknown") if reverse_map else prediction_index
+
+        # --- Step 6: Deep Search (Optional) ---
+        deep_search_results = {}
+        if deep_search_active:
+            category = classifications.get("complaint_category")
+            if category != "Unknown":
+                related_complaints_df = tran_hist_df[tran_hist_df['complaint_category'] == category]
+                deep_search_results["related_complaints_count"] = len(related_complaints_df)
+                deep_search_results["common_in_category"] = f"Found {len(related_complaints_df)} other complaints in the '{category}' category."
+
+        # --- Step 7: Synthesize and Return Response ---
+        final_response = {
+            "classifications": classifications,
+            "deep_search": deep_search_results,
+            "message": "The agent has analyzed your complaint. See the structured data below.",
+            "udp_summary_used": udp_data['summary'] # For debugging/display
+        }
+        return https_fn.Response(json.dumps(final_response), status=200, headers={"Content-Type": "application/json"})
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        traceback.print_exc()
+        return https_fn.Response("An internal server error occurred.", status=500)
+Use code with caution.
+Python
+Phase 3: Frontend Integration & UI
+This phase covers the React code to create the chat interface and communicate with the backend function. This part is unchanged from the previous plan.
+Create the Chat Page (src/pages/SolosolverChat.tsx)
+This component will manage the chat state and handle API calls.
+Add Code to SolosolverChat.tsx:
+// src/pages/SolosolverChat.tsx
+import React, { useState } from 'react';
+import { AIChatInput } from '../components/AIChatInput'; // Your existing component
+
+interface Message { sender: 'user' | 'ai'; text?: string; data?: any; }
+
+export const SolosolverChat = () => {
+  const [chatHistory, setChatHistory] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const MOCK_USER_ID = "test_user_123"; // Replace with real auth user ID
+
+  const handleSendMessage = async (complaintText: string, thinkActive: boolean, deepSearchActive: boolean) => {
+    if (!complaintText || isLoading) return;
+    setIsLoading(true);
+    setChatHistory(prev => [...prev, { sender: 'user', text: complaintText }]);
+
+    // --- IMPORTANT: REPLACE WITH YOUR DEPLOYED FUNCTION URL ---
+    const functionUrl = "YOUR_FIREBASE_FUNCTION_URL"; 
+
+    try {
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: MOCK_USER_ID, complaintText, deepSearchActive }),
+      });
+
+      if (!response.ok) throw new Error(`Backend Error: ${response.statusText}`);
+      
+      const aiData = await response.json();
+      setChatHistory(prev => [...prev, { sender: 'ai', data: aiData }]);
+    } catch (error) {
+      console.error("Failed to get response:", error);
+      setChatHistory(prev => [...prev, { sender: 'ai', text: "Sorry, I encountered an error." }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-screen p-4 bg-gray-100">
+      <div className="flex-grow overflow-y-auto mb-4 p-4 bg-white rounded-lg shadow">
+        {/* Map over chatHistory to display messages */}
+        {chatHistory.map((msg, index) => (
+          <div key={index} className={`chat ${msg.sender === 'user' ? 'chat-end' : 'chat-start'}`}>
+            <div className="chat-bubble">
+              {msg.text}
+              {msg.data && <pre className="text-xs mt-2 p-2 bg-gray-200 rounded">{JSON.stringify(msg.data, null, 2)}</pre>}
+            </div>
+          </div>
+        ))}
+        {isLoading && <p className="text-center text-gray-500">Agent is thinking...</p>}
+      </div>
+      <AIChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
+    </div>
+  );
+};
+Use code with caution.
+Tsx
+Deployment & Execution Workflow
+Set up Local Project: Create the solosolver-firebase/functions/data structure and place your files inside.
+Code Backend: Complete the main.py and requirements.txt files in the functions directory.
+Deploy via CLI: Open your terminal in the solosolver-firebase directory and run firebase deploy --only functions. This bundles your data and code together.
+Get Function URL: Copy the analyzeComplaint function URL from the terminal output.
+Configure Frontend: Paste the URL into the functionUrl variable in your SolosolverChat.tsx file.
+Run and Test: Start your React development server (npm run dev) and test the chat interface.
