@@ -41,16 +41,37 @@ const Index = () => {
             Gemini 2.5 Flash orchestration and fine-tuned Gemma 3-4B classification for 
             instant, intelligent complaint resolution.
           </p>
+
+          {/* User Connection Options */}
+          <div className="mb-8">
+            <h3 className="text-lg font-semibold text-gray-700 mb-4">Connect as:</h3>
+            <div className="flex justify-center gap-4 flex-wrap">
+              <Link to="/user">
+                <Button size="lg" variant="outline" className="px-6 py-3">
+                  <Users className="h-5 w-5 mr-2" />
+                  Customer
+                </Button>
+              </Link>
+              <Link to="/manager">
+                <Button size="lg" variant="outline" className="px-6 py-3">
+                  <BarChart3 className="h-5 w-5 mr-2" />
+                  Manager
+                </Button>
+              </Link>
+              <Link to="/admin">
+                <Button size="lg" variant="outline" className="px-6 py-3">
+                  <Shield className="h-5 w-5 mr-2" />
+                  Administrator
+                </Button>
+              </Link>
+            </div>
+          </div>
+
           <div className="flex justify-center gap-4">
             <Link to="/chat">
               <Button size="lg" className="px-8 py-3">
                 <MessageCircle className="h-5 w-5 mr-2" />
-                Start Conversation
-              </Button>
-            </Link>
-            <Link to="/user">
-              <Button size="lg" variant="outline" className="px-8 py-3">
-                View Dashboard
+                Start AI Conversation
               </Button>
             </Link>
           </div>
