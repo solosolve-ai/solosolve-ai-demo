@@ -1,198 +1,191 @@
 
-import React, { useState, useEffect } from 'react';
-import { PromptInput } from '@/components/PromptInput';
-import { AIAgentProgress, AgentTask } from '@/components/AIAgentProgress';
-import { BeamsBackground } from '@/components/BeamsBackground';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Bot, User, ArrowLeft, Search } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState, useRef, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { ArrowLeft, Bot, User } from "lucide-react";
+import { Link } from "react-router-dom";
+import { BeamsBackground } from "@/components/BeamsBackground";
+import { PromptInput } from "@/components/PromptInput";
+import { AIAgentProgress } from "@/components/AIAgentProgress";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import type { AgentTask } from "@/components/AIAgentProgress";
 
-interface Message {
+interface SimulatedUser {
+  id: string;
+  user_id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+interface ChatMessage {
   id: string;
   sender: 'user' | 'bot';
   content: string;
   timestamp: Date;
-  agentData?: any;
-  files?: FileList;
+  metadata?: any;
 }
 
-const SoloSolverChat = () => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const [messages, setMessages] = useState<Message[]>([
+interface SoloSolverChatProps {
+  currentUser: SimulatedUser;
+}
+
+const SoloSolverChat: React.FC<SoloSolverChatProps> = ({ currentUser }) => {
+  const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
       sender: 'bot',
-      content: 'Hello! I\'m SoloSolver AI, your complaint resolution assistant. I can analyze your complaints using advanced AI and search through your transaction history. How can I help you today?',
-      timestamp: new Date()
+      content: `Dear ${currentUser.name},\n\nWelcome to SoloSolver Customer Care. I am here to assist you with any complaints or concerns you may have regarding your recent purchases or experiences with our services.\n\nPlease describe the issue you are experiencing, and I will do my best to provide you with a prompt and satisfactory resolution.\n\nBest regards,\nSoloSolver Customer Care Team`,
+      timestamp: new Date(),
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [agentTasks, setAgentTasks] = useState<AgentTask[]>([]);
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [showSearchSidebar, setShowSearchSidebar] = useState(false);
+  const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
-  // Mock user ID - replace with real auth
-  const userId = "test_user_123";
-
-  const initializeAgentTasks = (): AgentTask[] => [
-    {
-      id: '1',
-      title: 'Analyzing complaint with Gemma 3-4B',
-      description: 'Classifying complaint into categories and detecting sentiment',
-      status: 'pending',
-      tools: ['gemma-classifier']
-    },
-    {
-      id: '2', 
-      title: 'Searching transaction history',
-      description: 'Finding relevant past transactions and complaints',
-      status: 'pending',
-      tools: ['supabase-search']
-    },
-    {
-      id: '3',
-      title: 'Generating response with Gemini',
-      description: 'Creating personalized response based on analysis',
-      status: 'pending',
-      tools: ['gemini-orchestrator']
-    }
-  ];
-
-  const updateTaskStatus = (taskId: string, status: AgentTask['status']) => {
-    setAgentTasks(prev => prev.map(task => 
-      task.id === taskId ? { ...task, status } : task
-    ));
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleSendMessage = async (messageContent: string, files?: FileList) => {
-    if (!messageContent.trim() && !files) return;
-    
-    setIsLoading(true);
-    
-    // Initialize agent tasks
-    const tasks = initializeAgentTasks();
-    setAgentTasks(tasks);
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
-    const userMessage: Message = {
+  const updateAgentTasks = (newTasks: AgentTask[]) => {
+    setAgentTasks(newTasks);
+  };
+
+  const handleSendMessage = async (content: string, files?: FileList) => {
+    if (!content.trim()) return;
+
+    const userMessage: ChatMessage = {
       id: Date.now().toString(),
       sender: 'user',
-      content: messageContent,
+      content: content.trim(),
       timestamp: new Date(),
-      files
     };
 
     setMessages(prev => [...prev, userMessage]);
+    setIsLoading(true);
+
+    // Initialize agent tasks
+    const initialTasks: AgentTask[] = [
+      {
+        id: 'classify',
+        title: 'Analyzing complaint',
+        description: 'Using Gemma 3-4B to classify complaint type and sentiment',
+        status: 'in-progress',
+        tools: ['gemma-classifier']
+      },
+      {
+        id: 'search',
+        title: 'Searching transaction history',
+        description: 'Finding relevant past transactions and complaints',
+        status: 'pending',
+        tools: ['supabase-search']
+      },
+      {
+        id: 'orchestrate',
+        title: 'Generating response',
+        description: 'Creating personalized solution using Gemini',
+        status: 'pending',
+        tools: ['gemini-orchestrator']
+      }
+    ];
+
+    updateAgentTasks(initialTasks);
 
     try {
-      // Step 1: Analyze complaint with Gemma (via analyze-complaint function)
-      updateTaskStatus('1', 'in-progress');
-      
-      const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-complaint', {
-        body: { 
-          userId,
-          complaintText: messageContent,
-          deepSearchActive: true
-        }
-      });
+      // Update first task to completed
+      updateAgentTasks(prev => prev.map(task => 
+        task.id === 'classify' 
+          ? { ...task, status: 'completed' }
+          : task.id === 'search'
+          ? { ...task, status: 'in-progress' }
+          : task
+      ));
 
-      if (analysisError) {
-        console.error('Analysis error:', analysisError);
-        updateTaskStatus('1', 'failed');
-        throw new Error('Failed to analyze complaint');
-      }
+      // Simulate some delay for the search
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      updateTaskStatus('1', 'completed');
-      
-      // Step 2: Search transactions
-      updateTaskStatus('2', 'in-progress');
-      
-      const { data: searchData, error: searchError } = await supabase.functions.invoke('search-transactions', {
+      const { data, error } = await supabase.functions.invoke('analyze-complaint', {
         body: {
-          userId,
-          searchQuery: messageContent,
-          category: analysisData?.classifications?.complaint_category || 'all',
-          timeRange: '30'
+          userId: currentUser.user_id,
+          complaintText: content,
+          chatHistory: messages.slice(-5),
+          sessionId: sessionId,
+          files: files ? Array.from(files) : undefined
         }
       });
 
-      if (searchError) {
-        console.error('Search error:', searchError);
-        updateTaskStatus('2', 'failed');
-      } else {
-        updateTaskStatus('2', 'completed');
-        setSearchResults(searchData?.transactions || []);
-        
-        // Show search results in sidebar
-        if (searchData?.transactions?.length > 0) {
-          setShowSearchSidebar(true);
-          toast({
-            title: "Found Related History",
-            description: `Found ${searchData.transactions.length} related transactions`,
-          });
-        }
+      if (error) {
+        throw error;
       }
 
-      // Step 3: Generate final response
-      updateTaskStatus('3', 'in-progress');
-      
+      // Update search task to completed, orchestrate to in-progress
+      updateAgentTasks(prev => prev.map(task => 
+        task.id === 'search' 
+          ? { ...task, status: 'completed' }
+          : task.id === 'orchestrate'
+          ? { ...task, status: 'in-progress' }
+          : task
+      ));
+
       // Simulate response generation delay
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const botMessage: Message = {
+
+      // Complete all tasks
+      updateAgentTasks(prev => prev.map(task => 
+        task.id === 'orchestrate' 
+          ? { ...task, status: 'completed' }
+          : task
+      ));
+
+      const botMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
-        content: `I've analyzed your complaint and found it relates to **${analysisData?.classifications?.complaint_category || 'general service'}** issues. Based on your transaction history, I can see patterns that help me provide a more personalized response.
-
-**Analysis Results:**
-- Category: ${analysisData?.classifications?.complaint_category || 'Unknown'}
-- Sentiment: ${analysisData?.classifications?.sentiment || 'Neutral'}
-- Priority: ${analysisData?.classifications?.priority || 'Medium'}
-- Recommendation: ${analysisData?.classifications?.recommendation || 'Standard resolution process'}
-
-${searchData?.transactions?.length > 0 ? `I found ${searchData.transactions.length} related transactions in your history which I've considered in my response.` : ''}
-
-How would you like me to proceed with resolving this issue?`,
+        content: data.response || "I apologize, but I'm experiencing technical difficulties. Please contact our support team directly for assistance.",
         timestamp: new Date(),
-        agentData: analysisData
+        metadata: {
+          classifications: data.classifications,
+          searchResults: data.searchResults
+        }
       };
 
       setMessages(prev => [...prev, botMessage]);
-      updateTaskStatus('3', 'completed');
 
-      // Show classification results as toast
-      if (analysisData?.classifications) {
+      if (data.classifications) {
         toast({
-          title: "Complaint Classified",
-          description: `Category: ${analysisData.classifications.complaint_category}, Sentiment: ${analysisData.classifications.sentiment}`,
+          title: "Analysis Complete",
+          description: `Complaint classified as: ${data.classifications.complaint_category}`,
         });
       }
 
     } catch (error) {
-      console.error('Error processing message:', error);
+      console.error('Error sending message:', error);
       
-      // Mark all remaining tasks as failed
-      setAgentTasks(prev => prev.map(task => 
-        task.status === 'pending' || task.status === 'in-progress' 
-          ? { ...task, status: 'failed' } 
+      // Mark tasks as failed
+      updateAgentTasks(prev => prev.map(task => 
+        task.status === 'in-progress' || task.status === 'pending'
+          ? { ...task, status: 'failed' }
           : task
       ));
 
-      const errorMessage: Message = {
+      const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
-        content: 'I apologize, but I encountered an error while processing your complaint. Please try again or contact support if the issue persists.',
-        timestamp: new Date()
+        content: "Dear Valued Customer,\n\nI apologize for the technical difficulty we are currently experiencing. Our technical team has been notified and is working to resolve this issue promptly.\n\nIn the meantime, please feel free to contact our customer service team directly at support@company.com or call our helpline for immediate assistance.\n\nThank you for your patience and understanding.\n\nBest regards,\nSoloSolver Customer Care Team",
+        timestamp: new Date(),
       };
-      
+
       setMessages(prev => [...prev, errorMessage]);
       
       toast({
-        title: "Processing Error",
-        description: "Failed to process your complaint. Please try again.",
+        title: "Connection Error",
+        description: "Unable to process your request. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -200,141 +193,109 @@ How would you like me to proceed with resolving this issue?`,
     }
   };
 
-  const handleFileUpload = (files: FileList) => {
-    const fileNames = Array.from(files).map(f => f.name).join(', ');
-    toast({
-      title: "Files Uploaded",
-      description: `Uploaded: ${fileNames}`,
-    });
-  };
-
   return (
-    <BeamsBackground>
-      <div className="min-h-screen flex">
-        {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <div className="bg-white/90 backdrop-blur-sm shadow-sm border-b p-4">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/user')}
-                className="mr-2"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
-              </Button>
-              <Bot className="h-8 w-8 text-blue-600" />
-              <div>
-                <h1 className="text-xl font-semibold text-gray-900">SoloSolver AI</h1>
-                <p className="text-sm text-gray-600">AI-Powered Complaint Resolution</p>
-              </div>
-              <div className="ml-auto">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowSearchSidebar(!showSearchSidebar)}
-                >
-                  <Search className="h-4 w-4 mr-2" />
-                  Search History
+    <BeamsBackground className="min-h-screen">
+      <div className="relative z-10 flex flex-col h-screen">
+        {/* Header */}
+        <div className="p-4 border-b border-white/20 bg-white/5 backdrop-blur">
+          <div className="flex items-center justify-between max-w-6xl mx-auto">
+            <div className="flex items-center space-x-4">
+              <Link to="/">
+                <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back
                 </Button>
+              </Link>
+              <div>
+                <h1 className="text-xl font-semibold text-white">SoloSolver AI Assistant</h1>
+                <p className="text-sm text-white/70">Customer: {currentUser.name}</p>
               </div>
             </div>
-          </div>
-
-          {/* Messages and Agent Progress */}
-          <div className="flex-1 flex gap-4 p-4 overflow-hidden">
-            {/* Messages */}
-            <div className="flex-1 flex flex-col">
-              <div className="flex-1 overflow-y-auto space-y-4 mb-4">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex gap-3 ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    {message.sender === 'bot' && (
-                      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
-                        <Bot className="h-4 w-4 text-white" />
-                      </div>
-                    )}
-                    
-                    <Card className={`max-w-md p-3 ${
-                      message.sender === 'user' 
-                        ? 'bg-blue-600 text-white' 
-                        : 'bg-white/90 backdrop-blur-sm border'
-                    }`}>
-                      <div className="text-sm whitespace-pre-wrap">{message.content}</div>
-                      {message.files && (
-                        <div className="mt-2 text-xs opacity-75">
-                          📎 {Array.from(message.files).map(f => f.name).join(', ')}
-                        </div>
-                      )}
-                      <p className={`text-xs mt-1 ${
-                        message.sender === 'user' ? 'text-blue-100' : 'text-gray-500'
-                      }`}>
-                        {message.timestamp.toLocaleTimeString()}
-                      </p>
-                    </Card>
-
-                    {message.sender === 'user' && (
-                      <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center flex-shrink-0">
-                        <User className="h-4 w-4 text-white" />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Input */}
-              <div className="bg-white/90 backdrop-blur-sm rounded-lg p-4 border">
-                <PromptInput
-                  onSubmit={handleSendMessage}
-                  onFileUpload={handleFileUpload}
-                  disabled={isLoading}
-                  placeholder="Describe your complaint or upload relevant files..."
-                />
-              </div>
+            <div className="text-right">
+              <p className="text-sm text-white/70">Session ID</p>
+              <p className="text-xs text-white/50 font-mono">{sessionId}</p>
             </div>
-
-            {/* Agent Progress Sidebar */}
-            {agentTasks.length > 0 && (
-              <div className="w-80">
-                <AIAgentProgress tasks={agentTasks} className="bg-white/90 backdrop-blur-sm" />
-              </div>
-            )}
           </div>
         </div>
 
-        {/* Search Results Sidebar */}
-        {showSearchSidebar && (
-          <div className="w-80 bg-white/90 backdrop-blur-sm border-l p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Transaction History</h3>
-              <Button variant="ghost" size="sm" onClick={() => setShowSearchSidebar(false)}>
-                ×
-              </Button>
-            </div>
-            <div className="space-y-3 overflow-y-auto">
-              {searchResults.map((result, index) => (
-                <Card key={index} className="p-3">
-                  <div className="text-sm font-medium truncate">
-                    {result.complaint_body_text || 'Transaction'}
+        {/* Main Content */}
+        <div className="flex-1 flex max-w-6xl mx-auto w-full">
+          {/* Chat Area */}
+          <div className="flex-1 flex flex-col">
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className={`flex items-start space-x-2 max-w-[80%] ${message.sender === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
+                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                      message.sender === 'user' 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'bg-white/10 backdrop-blur text-white'
+                    }`}>
+                      {message.sender === 'user' ? (
+                        <User className="h-4 w-4" />
+                      ) : (
+                        <Bot className="h-4 w-4" />
+                      )}
+                    </div>
+                    <Card className={`p-4 ${
+                      message.sender === 'user'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-white/10 backdrop-blur border-white/20 text-white'
+                    }`}>
+                      <div className="whitespace-pre-wrap text-sm">{message.content}</div>
+                      <div className="mt-2 text-xs opacity-70">
+                        {message.timestamp.toLocaleTimeString()}
+                      </div>
+                    </Card>
                   </div>
-                  <div className="text-xs text-gray-600 mt-1">
-                    Category: {result.inferred_complaint_driver || 'Unknown'}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {new Date(result.timestamp_review_dt || result.timestamp_review).toLocaleDateString()}
-                  </div>
-                </Card>
+                </div>
               ))}
-              {searchResults.length === 0 && (
-                <p className="text-gray-600 text-sm">No related transactions found.</p>
+              
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="flex items-start space-x-2 max-w-[80%]">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-white/10 backdrop-blur text-white">
+                      <Bot className="h-4 w-4" />
+                    </div>
+                    <Card className="p-4 bg-white/10 backdrop-blur border-white/20 text-white">
+                      <div className="flex items-center space-x-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span className="text-sm">Processing your request...</span>
+                      </div>
+                    </Card>
+                  </div>
+                </div>
               )}
+              
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input */}
+            <div className="p-4 border-t border-white/20 bg-white/5 backdrop-blur">
+              <PromptInput
+                placeholder="Describe your complaint or concern..."
+                onSubmit={handleSendMessage}
+                onFileUpload={(files) => handleSendMessage("Uploaded files for review", files)}
+                disabled={isLoading}
+                className="bg-white/10 backdrop-blur border-white/20"
+              />
             </div>
           </div>
-        )}
+
+          {/* Agent Progress Sidebar */}
+          {agentTasks.length > 0 && (
+            <div className="w-80 border-l border-white/20 bg-white/5 backdrop-blur p-4">
+              <AIAgentProgress 
+                tasks={agentTasks}
+                className="bg-white/10 backdrop-blur border-white/20"
+              />
+            </div>
+          )}
+        </div>
       </div>
     </BeamsBackground>
   );

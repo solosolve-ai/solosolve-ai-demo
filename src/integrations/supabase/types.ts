@@ -9,6 +9,45 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ai_interactions: {
+        Row: {
+          complaint_text: string
+          created_at: string | null
+          gemini_reasoning: string | null
+          gemini_response: string | null
+          gemma_classifications: Json | null
+          gemma_reasoning: string | null
+          id: string
+          search_results: Json | null
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          complaint_text: string
+          created_at?: string | null
+          gemini_reasoning?: string | null
+          gemini_response?: string | null
+          gemma_classifications?: Json | null
+          gemma_reasoning?: string | null
+          id?: string
+          search_results?: Json | null
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          complaint_text?: string
+          created_at?: string | null
+          gemini_reasoning?: string | null
+          gemini_response?: string | null
+          gemma_classifications?: Json | null
+          gemma_reasoning?: string | null
+          id?: string
+          search_results?: Json | null
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           classifications: Json | null
@@ -109,6 +148,33 @@ export type Database = {
           name?: string | null
           total_purchase_value?: number | null
           updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      simulated_users: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string
+          role: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          role?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          role?: string | null
           user_id?: string
         }
         Relationships: []
@@ -280,7 +346,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      search_transactions_text: {
+        Args: {
+          search_query: string
+          user_filter?: string
+          category_filter?: string
+          limit_count?: number
+        }
+        Returns: {
+          id: string
+          user_id: string
+          complaint_body_text: string
+          inferred_complaint_driver: string
+          rating_review: number
+          timestamp_review_dt: string
+          product_title: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

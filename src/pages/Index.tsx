@@ -1,177 +1,184 @@
 
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Bot, MessageCircle, BarChart3, Users, Shield, Zap } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { MessageSquare, Users, BarChart3, Settings, LogOut, User, ShieldCheck } from "lucide-react";
+import { BeamsBackground } from "@/components/BeamsBackground";
 
-const Index = () => {
+interface SimulatedUser {
+  id: string;
+  user_id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+interface IndexProps {
+  currentUser: SimulatedUser;
+  onLogout: () => void;
+}
+
+const Index = ({ currentUser, onLogout }: IndexProps) => {
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return <ShieldCheck className="h-4 w-4" />;
+      case 'manager':
+        return <Settings className="h-4 w-4" />;
+      default:
+        return <User className="h-4 w-4" />;
+    }
+  };
+
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return 'bg-red-100 text-red-800';
+      case 'manager':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-green-100 text-green-800';
+    }
+  };
+
+  const getRoleRoutes = (role: string) => {
+    const baseRoutes = [
+      {
+        title: "SoloSolver Chat",
+        description: "Talk to our AI complaint resolution assistant",
+        icon: MessageSquare,
+        href: "/chat",
+        color: "bg-blue-500",
+      },
+    ];
+
+    if (role === 'customer') {
+      return [
+        ...baseRoutes,
+        {
+          title: "My Dashboard",
+          description: "View your complaint history and status",
+          icon: BarChart3,
+          href: "/user/dashboard",
+          color: "bg-green-500",
+        },
+        {
+          title: "My Profile",
+          description: "Manage your account settings",
+          icon: User,
+          href: "/user/profile",
+          color: "bg-purple-500",
+        },
+      ];
+    }
+
+    if (role === 'manager') {
+      return [
+        ...baseRoutes,
+        {
+          title: "Manager Dashboard",
+          description: "Oversee complaint resolution processes",
+          icon: BarChart3,
+          href: "/manager/dashboard",
+          color: "bg-orange-500",
+        },
+      ];
+    }
+
+    if (role === 'admin') {
+      return [
+        ...baseRoutes,
+        {
+          title: "Admin Dashboard",
+          description: "Full system control and analytics",
+          icon: Settings,
+          href: "/admin/dashboard",
+          color: "bg-red-500",
+        },
+      ];
+    }
+
+    return baseRoutes;
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Bot className="h-8 w-8 text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-900">SoloSolver AI</h1>
+    <BeamsBackground className="min-h-screen">
+      <div className="relative z-10 flex flex-col min-h-screen">
+        {/* Header */}
+        <header className="p-6">
+          <div className="max-w-7xl mx-auto flex justify-between items-center">
+            <div>
+              <h1 className="text-4xl font-bold text-white">SoloSolver AI</h1>
+              <p className="text-white/80 text-lg">Intelligent Complaint Management System</p>
             </div>
-            <nav className="flex items-center gap-4">
-              <Link to="/user">
-                <Button variant="outline">User Dashboard</Button>
-              </Link>
-              <Link to="/admin">
-                <Button variant="outline">Admin</Button>
-              </Link>
-              <Link to="/chat">
-                <Button>Try AI Assistant</Button>
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
-
-      {/* Hero Section */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-5xl font-bold text-gray-900 mb-6">
-            AI-Powered Complaint Resolution
-          </h2>
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Revolutionize your customer service with our dual-LLM architecture featuring 
-            Gemini 2.5 Flash orchestration and fine-tuned Gemma 3-4B classification for 
-            instant, intelligent complaint resolution.
-          </p>
-
-          {/* User Connection Options */}
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold text-gray-700 mb-4">Connect as:</h3>
-            <div className="flex justify-center gap-4 flex-wrap">
-              <Link to="/user">
-                <Button size="lg" variant="outline" className="px-6 py-3">
-                  <Users className="h-5 w-5 mr-2" />
-                  Customer
-                </Button>
-              </Link>
-              <Link to="/manager">
-                <Button size="lg" variant="outline" className="px-6 py-3">
-                  <BarChart3 className="h-5 w-5 mr-2" />
-                  Manager
-                </Button>
-              </Link>
-              <Link to="/admin">
-                <Button size="lg" variant="outline" className="px-6 py-3">
-                  <Shield className="h-5 w-5 mr-2" />
-                  Administrator
-                </Button>
-              </Link>
-            </div>
-          </div>
-
-          <div className="flex justify-center gap-4">
-            <Link to="/chat">
-              <Button size="lg" className="px-8 py-3">
-                <MessageCircle className="h-5 w-5 mr-2" />
-                Start AI Conversation
+            
+            <div className="flex items-center space-x-4">
+              <Card className="bg-white/10 backdrop-blur border-white/20">
+                <CardContent className="p-4 flex items-center space-x-3">
+                  <Avatar>
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      {currentUser.name.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-semibold text-white">{currentUser.name}</p>
+                    <div className="flex items-center space-x-2">
+                      <Badge className={`${getRoleColor(currentUser.role)} flex items-center gap-1`}>
+                        {getRoleIcon(currentUser.role)}
+                        {currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1)}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Button 
+                onClick={onLogout}
+                variant="outline"
+                className="bg-white/10 backdrop-blur border-white/20 text-white hover:bg-white/20"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
               </Button>
-            </Link>
+            </div>
           </div>
-        </div>
-      </section>
+        </header>
 
-      {/* Features Grid */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h3 className="text-3xl font-bold text-center text-gray-900 mb-12">
-            Advanced AI Features
-          </h3>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Card className="p-6 hover:shadow-lg transition-shadow">
-              <Bot className="h-10 w-10 text-blue-600 mb-4" />
-              <h4 className="text-xl font-semibold mb-2">Dual-LLM Architecture</h4>
-              <p className="text-gray-600">
-                Gemini 2.5 Flash orchestrates conversations while fine-tuned Gemma 3-4B 
-                provides specialized 8-label multi-task classification for precise analysis.
-              </p>
-            </Card>
-
-            <Card className="p-6 hover:shadow-lg transition-shadow">
-              <BarChart3 className="h-10 w-10 text-green-600 mb-4" />
-              <h4 className="text-xl font-semibold mb-2">Smart Classification</h4>
-              <p className="text-gray-600">
-                Instantly categorizes complaints into 11 types with sentiment analysis, 
-                aggression detection, and automated decision recommendations.
-              </p>
-            </Card>
-
-            <Card className="p-6 hover:shadow-lg transition-shadow">
-              <Users className="h-10 w-10 text-purple-600 mb-4" />
-              <h4 className="text-xl font-semibold mb-2">User History Analysis</h4>
-              <p className="text-gray-600">
-                Leverages transaction history and user profiles for personalized responses 
-                and context-aware complaint resolution strategies.
-              </p>
-            </Card>
-
-            <Card className="p-6 hover:shadow-lg transition-shadow">
-              <Shield className="h-10 w-10 text-red-600 mb-4" />
-              <h4 className="text-xl font-semibold mb-2">Policy Integration</h4>
-              <p className="text-gray-600">
-                ChromaDB-powered policy retrieval ensures responses align with company 
-                guidelines and regulatory requirements.
-              </p>
-            </Card>
-
-            <Card className="p-6 hover:shadow-lg transition-shadow">
-              <Zap className="h-10 w-10 text-yellow-600 mb-4" />
-              <h4 className="text-xl font-semibent mb-2">Real-time Processing</h4>
-              <p className="text-gray-600">
-                Supabase Edge Functions provide millisecond response times with 
-                scalable cloud infrastructure and real-time database updates.
-              </p>
-            </Card>
-
-            <Card className="p-6 hover:shadow-lg transition-shadow">
-              <MessageCircle className="h-10 w-10 text-indigo-600 mb-4" />
-              <h4 className="text-xl font-semibold mb-2">Multi-turn Conversations</h4>
-              <p className="text-gray-600">
-                Maintains conversation context across multiple exchanges for natural, 
-                human-like customer service interactions.
-              </p>
-            </Card>
+        {/* Main Content */}
+        <main className="flex-1 p-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {getRoleRoutes(currentUser.role).map((route, index) => {
+                const Icon = route.icon;
+                return (
+                  <Link key={index} to={route.href}>
+                    <Card className="h-full bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/20 transition-all duration-200 hover:scale-105">
+                      <CardHeader>
+                        <div className={`w-12 h-12 ${route.color} rounded-lg flex items-center justify-center mb-4`}>
+                          <Icon className="h-6 w-6 text-white" />
+                        </div>
+                        <CardTitle className="text-white">{route.title}</CardTitle>
+                        <CardDescription className="text-white/80">
+                          {route.description}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button variant="outline" className="w-full bg-white/10 backdrop-blur border-white/20 text-white hover:bg-white/20">
+                          Get Started
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-r from-blue-600 to-indigo-600">
-        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h3 className="text-3xl font-bold text-white mb-4">
-            Ready to Transform Your Customer Service?
-          </h3>
-          <p className="text-xl text-blue-100 mb-8">
-            Experience the future of AI-powered complaint resolution with SoloSolver.
-          </p>
-          <Link to="/chat">
-            <Button size="lg" variant="secondary" className="px-8 py-3">
-              Start Your First Conversation
-            </Button>
-          </Link>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Bot className="h-6 w-6" />
-            <span className="text-lg font-semibold">SoloSolver AI</span>
-          </div>
-          <p className="text-gray-400">
-            Advanced AI complaint resolution system powered by Gemini and Gemma models.
-          </p>
-        </div>
-      </footer>
-    </div>
+        </main>
+      </div>
+    </BeamsBackground>
   );
 };
 

@@ -1,37 +1,68 @@
 
-import React from "react";
+import * as React from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as SonnerToaster } from "sonner";
-import Index from "./pages/Index";
-import UserDashboard from "./pages/UserDashboard";
-import AdminDashboard from "./pages/AdminDashboard";
-import ManagerDashboard from "./pages/ManagerDashboard";
-import UserProfile from "./pages/UserProfile";
-import UserNotifications from "./pages/UserNotifications";
-import UserComplaints from "./pages/UserComplaints";
-import SoloSolverChat from "./pages/SoloSolverChat";
+import { LoginScreen } from "@/pages/LoginScreen";
+import Index from "@/pages/Index";
+import SoloSolverChat from "@/pages/SoloSolverChat";
+import UserDashboard from "@/pages/UserDashboard";
+import UserProfile from "@/pages/UserProfile";
+import UserComplaints from "@/pages/UserComplaints";
+import UserNotifications from "@/pages/UserNotifications";
+import ManagerDashboard from "@/pages/ManagerDashboard";
+import AdminDashboard from "@/pages/AdminDashboard";
 
-const queryClient = new QueryClient();
+interface SimulatedUser {
+  id: string;
+  user_id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: 1,
+    },
+  },
+});
 
 function App() {
+  const [currentUser, setCurrentUser] = React.useState<SimulatedUser | null>(null);
+
+  const handleUserSelect = (user: SimulatedUser) => {
+    setCurrentUser(user);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/user" element={<UserDashboard />} />
-          <Route path="/user/profile" element={<UserProfile />} />
-          <Route path="/user/notifications" element={<UserNotifications />} />
-          <Route path="/user/complaints" element={<UserComplaints />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/manager" element={<ManagerDashboard />} />
-          <Route path="/chat" element={<SoloSolverChat />} />
-        </Routes>
-        <Toaster />
-        <SonnerToaster />
-      </BrowserRouter>
+      <Router>
+        <div className="min-h-screen bg-background font-sans antialiased">
+          {!currentUser ? (
+            <LoginScreen onUserSelect={handleUserSelect} />
+          ) : (
+            <Routes>
+              <Route path="/" element={<Index currentUser={currentUser} onLogout={handleLogout} />} />
+              <Route path="/chat" element={<SoloSolverChat currentUser={currentUser} />} />
+              <Route path="/user/dashboard" element={<UserDashboard currentUser={currentUser} />} />
+              <Route path="/user/profile" element={<UserProfile currentUser={currentUser} />} />
+              <Route path="/user/complaints" element={<UserComplaints currentUser={currentUser} />} />
+              <Route path="/user/notifications" element={<UserNotifications currentUser={currentUser} />} />
+              <Route path="/manager/dashboard" element={<ManagerDashboard currentUser={currentUser} />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard currentUser={currentUser} />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          )}
+          <Toaster />
+        </div>
+      </Router>
     </QueryClientProvider>
   );
 }
