@@ -54,7 +54,7 @@ function App() {
       <Router>
         <div className="min-h-screen bg-background font-sans antialiased">
           {showWelcome && !currentUser ? (
-            <WelcomeScreen />
+            <WelcomeScreen onGetStarted={handleGetStarted} />
           ) : !currentUser ? (
             <LoginScreen onUserSelect={handleUserSelect} />
           ) : (
@@ -63,10 +63,10 @@ function App() {
               <Route path="/chat" element={<SoloSolverChat currentUser={currentUser} />} />
               <Route path="/user/dashboard" element={<UserDashboard currentUser={currentUser} />} />
               <Route path="/user/profile" element={<UserProfile currentUser={currentUser} />} />
-              <Route path="/user/complaints" element={<UserComplaints currentUser={currentUser} />} />
-              <Route path="/user/notifications" element={<UserNotifications currentUser={currentUser} />} />
-              <Route path="/manager/dashboard" element={<ManagerDashboard currentUser={currentUser} />} />
-              <Route path="/admin/dashboard" element={<AdminDashboard currentUser={currentUser} />} />
+              <Route path="/user/complaints" element={<UserComplaints />} />
+              <Route path="/user/notifications" element={<UserNotifications />} />
+              <Route path="/manager/dashboard" element={<ManagerDashboard />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/login" element={<LoginScreen onUserSelect={handleUserSelect} />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
