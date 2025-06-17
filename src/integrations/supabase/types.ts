@@ -9,7 +9,272 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      chat_messages: {
+        Row: {
+          classifications: Json | null
+          created_at: string | null
+          id: string
+          message: string
+          metadata: Json | null
+          sender: string
+          session_id: string
+        }
+        Insert: {
+          classifications?: Json | null
+          created_at?: string | null
+          id?: string
+          message: string
+          metadata?: Json | null
+          sender: string
+          session_id: string
+        }
+        Update: {
+          classifications?: Json | null
+          created_at?: string | null
+          id?: string
+          message?: string
+          metadata?: Json | null
+          sender?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "chat_sessions"
+            referencedColumns: ["session_id"]
+          },
+        ]
+      }
+      chat_sessions: {
+        Row: {
+          created_at: string | null
+          id: string
+          session_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          session_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          session_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avg_satisfaction_rating: number | null
+          complaint_count: number | null
+          created_at: string | null
+          email: string | null
+          id: string
+          is_aggressive_tendency: boolean | null
+          is_chronic_complainer: boolean | null
+          name: string | null
+          total_purchase_value: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          avg_satisfaction_rating?: number | null
+          complaint_count?: number | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_aggressive_tendency?: boolean | null
+          is_chronic_complainer?: boolean | null
+          name?: string | null
+          total_purchase_value?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          avg_satisfaction_rating?: number | null
+          complaint_count?: number | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_aggressive_tendency?: boolean | null
+          is_chronic_complainer?: boolean | null
+          name?: string | null
+          total_purchase_value?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transaction_history: {
+        Row: {
+          asin_review: string | null
+          author: string | null
+          average_rating: number | null
+          bought_together: Json | null
+          bought_together_str: string | null
+          categories: Json | null
+          categories_str: string | null
+          complaint_body_text: string | null
+          complaint_helpful_votes: number | null
+          complaint_rating_given: number | null
+          complaint_title_text: string | null
+          complaint_verified_purchase: boolean | null
+          created_at: string | null
+          description: string | null
+          description_str: string | null
+          details: Json | null
+          features: Json | null
+          features_str: string | null
+          helpful_vote_review: number | null
+          id: string
+          image_urls_str: string | null
+          images: Json | null
+          images_review: Json | null
+          inferred_complaint_driver: string | null
+          main_category: string | null
+          parent_asin: string | null
+          price: number | null
+          product_asin_display: string | null
+          product_avg_rating: number | null
+          product_features: string | null
+          product_main_category: string | null
+          product_price_display: string | null
+          product_price_numeric: number | null
+          product_rating_number: number | null
+          product_store: string | null
+          product_sub_category: string | null
+          product_title: string | null
+          rating_number: number | null
+          rating_review: number | null
+          store: string | null
+          subtitle: string | null
+          text_review: string | null
+          text_review_cleaned: string | null
+          timestamp_review: number | null
+          timestamp_review_dt: string | null
+          title: string | null
+          title_review: string | null
+          title_review_cleaned: string | null
+          user_id: string
+          verified_purchase_review: boolean | null
+          videos: Json | null
+        }
+        Insert: {
+          asin_review?: string | null
+          author?: string | null
+          average_rating?: number | null
+          bought_together?: Json | null
+          bought_together_str?: string | null
+          categories?: Json | null
+          categories_str?: string | null
+          complaint_body_text?: string | null
+          complaint_helpful_votes?: number | null
+          complaint_rating_given?: number | null
+          complaint_title_text?: string | null
+          complaint_verified_purchase?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          description_str?: string | null
+          details?: Json | null
+          features?: Json | null
+          features_str?: string | null
+          helpful_vote_review?: number | null
+          id?: string
+          image_urls_str?: string | null
+          images?: Json | null
+          images_review?: Json | null
+          inferred_complaint_driver?: string | null
+          main_category?: string | null
+          parent_asin?: string | null
+          price?: number | null
+          product_asin_display?: string | null
+          product_avg_rating?: number | null
+          product_features?: string | null
+          product_main_category?: string | null
+          product_price_display?: string | null
+          product_price_numeric?: number | null
+          product_rating_number?: number | null
+          product_store?: string | null
+          product_sub_category?: string | null
+          product_title?: string | null
+          rating_number?: number | null
+          rating_review?: number | null
+          store?: string | null
+          subtitle?: string | null
+          text_review?: string | null
+          text_review_cleaned?: string | null
+          timestamp_review?: number | null
+          timestamp_review_dt?: string | null
+          title?: string | null
+          title_review?: string | null
+          title_review_cleaned?: string | null
+          user_id: string
+          verified_purchase_review?: boolean | null
+          videos?: Json | null
+        }
+        Update: {
+          asin_review?: string | null
+          author?: string | null
+          average_rating?: number | null
+          bought_together?: Json | null
+          bought_together_str?: string | null
+          categories?: Json | null
+          categories_str?: string | null
+          complaint_body_text?: string | null
+          complaint_helpful_votes?: number | null
+          complaint_rating_given?: number | null
+          complaint_title_text?: string | null
+          complaint_verified_purchase?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          description_str?: string | null
+          details?: Json | null
+          features?: Json | null
+          features_str?: string | null
+          helpful_vote_review?: number | null
+          id?: string
+          image_urls_str?: string | null
+          images?: Json | null
+          images_review?: Json | null
+          inferred_complaint_driver?: string | null
+          main_category?: string | null
+          parent_asin?: string | null
+          price?: number | null
+          product_asin_display?: string | null
+          product_avg_rating?: number | null
+          product_features?: string | null
+          product_main_category?: string | null
+          product_price_display?: string | null
+          product_price_numeric?: number | null
+          product_rating_number?: number | null
+          product_store?: string | null
+          product_sub_category?: string | null
+          product_title?: string | null
+          rating_number?: number | null
+          rating_review?: number | null
+          store?: string | null
+          subtitle?: string | null
+          text_review?: string | null
+          text_review_cleaned?: string | null
+          timestamp_review?: number | null
+          timestamp_review_dt?: string | null
+          title?: string | null
+          title_review?: string | null
+          title_review_cleaned?: string | null
+          user_id?: string
+          verified_purchase_review?: boolean | null
+          videos?: Json | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
