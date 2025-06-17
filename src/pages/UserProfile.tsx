@@ -1,17 +1,58 @@
+
+import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
-const UserProfile = () => {
+interface SimulatedUser {
+  id: string;
+  user_id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+interface UserProfileProps {
+  currentUser: SimulatedUser;
+}
+
+const UserProfile: React.FC<UserProfileProps> = ({ currentUser }) => {
   const navigate = useNavigate();
+
+  // Fetch user complaint statistics from actual data
+  const { data: userStats } = useQuery({
+    queryKey: ['user-stats', currentUser.user_id],
+    queryFn: async () => {
+      const { data: complaints, error } = await supabase
+        .from('transaction_history')
+        .select('*')
+        .eq('user_id', currentUser.user_id);
+      
+      if (error) throw error;
+
+      const totalComplaints = complaints?.length || 0;
+      const resolvedCount = complaints?.filter(c => c.rating_review && c.rating_review > 3).length || 0;
+      const inProgressCount = complaints?.filter(c => c.rating_review && c.rating_review <= 3 && c.rating_review >= 2).length || 0;
+      const newCount = complaints?.filter(c => !c.rating_review || c.rating_review < 2).length || 0;
+
+      return {
+        totalComplaints,
+        resolved: resolvedCount,
+        inProgress: inProgressCount,
+        new: newCount
+      };
+    }
+  });
 
   return (
     <div className="container mx-auto p-6">
       <button 
-        onClick={() => navigate('/user')}
+        onClick={() => navigate('/user/dashboard')}
         className="mb-6 p-2 rounded-full hover:bg-gray-200 transition-colors inline-flex items-center gap-2"
         aria-label="Back to dashboard"
       >
@@ -30,23 +71,25 @@ const UserProfile = () => {
             <div className="flex items-center space-x-4 mb-6">
               <Avatar className="h-24 w-24">
                 <AvatarImage src="/placeholder.svg" alt="Profile picture" />
-                <AvatarFallback>JD</AvatarFallback>
+                <AvatarFallback>
+                  {currentUser.name.split(' ').map(n => n[0]).join('')}
+                </AvatarFallback>
               </Avatar>
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
-              <Input id="name" value="John Doe" readOnly />
+              <Input id="name" value={currentUser.name} readOnly />
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" value="john.doe@example.com" readOnly />
+              <Input id="email" value={currentUser.email || 'Not provided'} readOnly />
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
-              <Input id="phone" value="+1 (555) 123-4567" readOnly />
+              <Input id="phone" value="Not provided" readOnly />
             </div>
           </CardContent>
         </Card>
@@ -59,19 +102,19 @@ const UserProfile = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-secondary p-4 rounded-lg">
                 <h3 className="text-lg font-medium">Total Complaints</h3>
-                <p className="text-3xl font-bold">12</p>
+                <p className="text-3xl font-bold">{userStats?.totalComplaints || 0}</p>
               </div>
               <div className="bg-secondary p-4 rounded-lg">
                 <h3 className="text-lg font-medium">Resolved</h3>
-                <p className="text-3xl font-bold">8</p>
+                <p className="text-3xl font-bold">{userStats?.resolved || 0}</p>
               </div>
               <div className="bg-secondary p-4 rounded-lg">
                 <h3 className="text-lg font-medium">In Progress</h3>
-                <p className="text-3xl font-bold">3</p>
+                <p className="text-3xl font-bold">{userStats?.inProgress || 0}</p>
               </div>
               <div className="bg-secondary p-4 rounded-lg">
                 <h3 className="text-lg font-medium">New</h3>
-                <p className="text-3xl font-bold">1</p>
+                <p className="text-3xl font-bold">{userStats?.new || 0}</p>
               </div>
             </div>
           </CardContent>
@@ -79,6 +122,6 @@ const UserProfile = () => {
       </div>
     </div>
   );
-}
+};
 
 export default UserProfile;

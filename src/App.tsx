@@ -3,6 +3,7 @@ import * as React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { WelcomeScreen } from "@/pages/WelcomeScreen";
 import { LoginScreen } from "@/pages/LoginScreen";
 import Index from "@/pages/Index";
 import SoloSolverChat from "@/pages/SoloSolverChat";
@@ -32,20 +33,29 @@ const queryClient = new QueryClient({
 
 function App() {
   const [currentUser, setCurrentUser] = React.useState<SimulatedUser | null>(null);
+  const [showWelcome, setShowWelcome] = React.useState(true);
 
   const handleUserSelect = (user: SimulatedUser) => {
     setCurrentUser(user);
+    setShowWelcome(false);
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
+    setShowWelcome(true);
+  };
+
+  const handleGetStarted = () => {
+    setShowWelcome(false);
   };
 
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
         <div className="min-h-screen bg-background font-sans antialiased">
-          {!currentUser ? (
+          {showWelcome && !currentUser ? (
+            <WelcomeScreen />
+          ) : !currentUser ? (
             <LoginScreen onUserSelect={handleUserSelect} />
           ) : (
             <Routes>
@@ -57,6 +67,7 @@ function App() {
               <Route path="/user/notifications" element={<UserNotifications currentUser={currentUser} />} />
               <Route path="/manager/dashboard" element={<ManagerDashboard currentUser={currentUser} />} />
               <Route path="/admin/dashboard" element={<AdminDashboard currentUser={currentUser} />} />
+              <Route path="/login" element={<LoginScreen onUserSelect={handleUserSelect} />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           )}

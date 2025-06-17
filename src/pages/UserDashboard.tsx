@@ -1,3 +1,4 @@
+
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ComplaintCard } from "@/components/ComplaintCard";
@@ -6,125 +7,59 @@ import { useState } from "react";
 import DashboardHeader from "@/components/DashboardHeader";
 import DashboardStats from "@/components/DashboardStats";
 import DashboardAnalytics from "@/components/DashboardAnalytics";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { motion } from "framer-motion";
 
-const complaints = [
-  {
-    id: "COM-001",
-    title: "Account Access Issues",
-    description: "Unable to log into my account after password reset. Need immediate assistance.",
-    status: "new" as const,
-    date: "2024-02-21",
-    category: "Account Management",
-    priority: "high" as const,
-    customerName: "John Smith",
-    orderNumber: "ORD-12345",
-    channelOfComplaint: "web"
-  },
-  {
-    id: "COM-002",
-    title: "Incorrect Billing Amount",
-    description: "Last month's bill shows incorrect charges. Need review and adjustment.",
-    status: "in-progress" as const,
-    date: "2024-02-20",
-    category: "Billing",
-    priority: "medium" as const,
-    customerName: "Sarah Johnson",
-    orderNumber: "ORD-12346",
-    channelOfComplaint: "phone"
-  },
-  {
-    id: "COM-003",
-    title: "App Crashes Frequently",
-    description: "Mobile app keeps crashing when trying to make a payment.",
-    status: "new" as const,
-    date: "2024-02-19",
-    category: "Technical Issues",
-    priority: "high" as const,
-    customerName: "Mike Brown",
-    orderNumber: "ORD-12347",
-    channelOfComplaint: "app"
-  },
-  {
-    id: "COM-004",
-    title: "Service Interruption",
-    description: "Experienced service outage for 2 hours. Need compensation.",
-    status: "resolved" as const,
-    date: "2024-02-18",
-    category: "Service Issues",
-    priority: "medium" as const,
-    customerName: "Emma Wilson",
-    orderNumber: "ORD-12348",
-    channelOfComplaint: "email"
-  },
-  {
-    id: "COM-005",
-    title: "Defective Product Received",
-    description: "The product arrived damaged and unusable.",
-    status: "new" as const,
-    date: "2024-02-22",
-    category: "Product",
-    priority: "high" as const,
-    customerName: "Alex Turner",
-    orderNumber: "ORD-12349",
-    channelOfComplaint: "web"
-  },
-  {
-    id: "COM-006",
-    title: "Wrong Product Specifications",
-    description: "Received a product with different specifications than ordered.",
-    status: "in-progress" as const,
-    date: "2024-02-22",
-    category: "Product",
-    priority: "medium" as const,
-    customerName: "Lisa Chen",
-    orderNumber: "ORD-12350",
-    channelOfComplaint: "phone"
-  },
-  {
-    id: "COM-007",
-    title: "Payment Gateway Error",
-    description: "Unable to complete transaction due to payment system error.",
-    status: "new" as const,
-    date: "2024-02-23",
-    category: "Technical Issues",
-    priority: "high" as const,
-    customerName: "David Park",
-    orderNumber: "ORD-12351",
-    channelOfComplaint: "web"
-  },
-  {
-    id: "COM-008",
-    title: "Website Loading Issues",
-    description: "Website is extremely slow and sometimes unresponsive.",
-    status: "new" as const,
-    date: "2024-02-23",
-    category: "Technical Issues",
-    priority: "medium" as const,
-    customerName: "Maria Garcia",
-    orderNumber: "ORD-12352",
-    channelOfComplaint: "web"
-  },
-  {
-    id: "COM-009",
-    title: "Mobile App Login Failed",
-    description: "Cannot login to mobile app after recent update.",
-    status: "new" as const,
-    date: "2024-02-23",
-    category: "Technical Issues",
-    priority: "high" as const,
-    customerName: "James Wilson",
-    orderNumber: "ORD-12353",
-    channelOfComplaint: "app"
-  }
-];
+interface SimulatedUser {
+  id: string;
+  user_id: string;
+  name: string;
+  email: string;
+  role: string;
+}
 
-const UserDashboard = () => {
+interface UserDashboardProps {
+  currentUser: SimulatedUser;
+}
+
+const UserDashboard: React.FC<UserDashboardProps> = ({ currentUser }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [urgencyFilter, setUrgencyFilter] = useState("all");
   const [channelFilter, setChannelFilter] = useState("all");
+
+  // Fetch actual user transaction data
+  const { data: transactions = [], isLoading } = useQuery({
+    queryKey: ['user-transactions', currentUser.user_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('transaction_history')
+        .select('*')
+        .eq('user_id', currentUser.user_id)
+        .order('timestamp_review_dt', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  // Transform transaction data to complaint format
+  const complaints = transactions.map((transaction, index) => ({
+    id: `COM-${String(index + 1).padStart(3, '0')}`,
+    title: transaction.complaint_title_text || transaction.product_title || 'Complaint',
+    description: transaction.complaint_body_text || 'No description available',
+    status: transaction.rating_review > 3 ? 'resolved' as const : 
+            transaction.rating_review >= 2 ? 'in-progress' as const : 'new' as const,
+    date: transaction.timestamp_review_dt ? new Date(transaction.timestamp_review_dt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    category: transaction.inferred_complaint_driver || 'General',
+    priority: transaction.rating_review <= 2 ? 'high' as const : 'medium' as const,
+    customerName: currentUser.name,
+    orderNumber: transaction.asin_review || `ORD-${String(index + 1).padStart(5, '0')}`,
+    channelOfComplaint: 'web' as const
+  }));
 
   const filteredComplaints = complaints.filter((complaint) => {
     const matchesSearch =
@@ -141,23 +76,54 @@ const UserDashboard = () => {
     return matchesSearch && matchesStatus && matchesPriority && matchesCategory && matchesChannel;
   });
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-[#F8FAFC]">
+      <div className="min-h-screen flex w-full bg-gradient-to-br from-slate-50 to-slate-100">
         <AppSidebar />
         <main className="flex-1 p-8">
           <div className="max-w-7xl mx-auto">
-            <DashboardHeader />
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <DashboardHeader />
+            </motion.div>
+            
             <div className="grid gap-6 mb-8">
-              <div className="bg-white rounded-lg shadow-sm p-6">
+              <motion.div 
+                className="bg-white rounded-xl shadow-lg p-6"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+              >
                 <DashboardStats complaints={complaints} />
-              </div>
-              <div className="bg-white rounded-lg shadow-sm p-6">
+              </motion.div>
+              
+              <motion.div 
+                className="bg-white rounded-xl shadow-lg p-6"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+              >
                 <DashboardAnalytics complaints={complaints} />
-              </div>
+              </motion.div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+            <motion.div 
+              className="bg-white rounded-xl shadow-lg p-6 mb-8"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
               <FilterBar
                 onSearchChange={setSearchQuery}
                 onStatusChange={setStatusFilter}
@@ -166,18 +132,35 @@ const UserDashboard = () => {
                 onUrgencyChange={setUrgencyFilter}
                 onChannelChange={setChannelFilter}
               />
-            </div>
+            </motion.div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredComplaints.map((complaint) => (
-                <ComplaintCard key={complaint.id} {...complaint} />
+            <motion.div 
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+            >
+              {filteredComplaints.map((complaint, index) => (
+                <motion.div
+                  key={complaint.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.1 }}
+                >
+                  <ComplaintCard {...complaint} />
+                </motion.div>
               ))}
               {filteredComplaints.length === 0 && (
-                <div className="col-span-full text-center py-12 text-gray-500">
+                <motion.div 
+                  className="col-span-full text-center py-12 text-gray-500"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                >
                   No complaints found matching your filters.
-                </div>
+                </motion.div>
               )}
-            </div>
+            </motion.div>
           </div>
         </main>
       </div>

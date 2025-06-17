@@ -1,3 +1,4 @@
+
 import { Home, MessageSquare, User, Bell, LogOut, UserCog, Users } from "lucide-react";
 import {
   Sidebar,
@@ -10,17 +11,17 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 const userItems = [
   {
     title: "Dashboard",
-    path: "/user",
+    path: "/user/dashboard",
     icon: Home,
   },
   {
-    title: "Complaints",
-    path: "/user/complaints",
+    title: "SoloSolver Chat",
+    path: "/chat",
     icon: MessageSquare,
   },
   {
@@ -38,8 +39,13 @@ const userItems = [
 const managerItems = [
   {
     title: "Dashboard",
-    path: "/manager",
+    path: "/manager/dashboard",
     icon: Home,
+  },
+  {
+    title: "SoloSolver Chat",
+    path: "/chat",
+    icon: MessageSquare,
   },
   {
     title: "Team Management",
@@ -51,18 +57,18 @@ const managerItems = [
     path: "/manager/complaints",
     icon: MessageSquare,
   },
-  {
-    title: "Settings",
-    path: "/manager/settings",
-    icon: UserCog,
-  },
 ];
 
 const adminItems = [
   {
     title: "Dashboard",
-    path: "/admin",
+    path: "/admin/dashboard",
     icon: Home,
+  },
+  {
+    title: "SoloSolver Chat",
+    path: "/chat",
+    icon: MessageSquare,
   },
   {
     title: "System Overview",
@@ -73,11 +79,6 @@ const adminItems = [
     title: "User Management",
     path: "/admin/users",
     icon: Users,
-  },
-  {
-    title: "Complaints Analytics",
-    path: "/admin/analytics",
-    icon: MessageSquare,
   },
 ];
 
@@ -105,7 +106,7 @@ export function AppSidebar() {
       <SidebarContent className="bg-navy pt-6 flex flex-col h-full">
         <div className="px-6 mb-6">
           <img
-            src="/lovable-uploads/7ce98f22-edb3-447e-bced-b38cae04687d.png"
+            src="/lovable-uploads/704cd890-e36f-4688-8aa1-a02ffa01eb64.png"
             alt="SoloSolve AI"
             className="h-24"
           />

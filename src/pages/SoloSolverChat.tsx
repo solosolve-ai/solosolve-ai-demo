@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, Bot, User } from "lucide-react";
 import { Link } from "react-router-dom";
-import { BeamsBackground } from "@/components/BeamsBackground";
 import { PromptInput } from "@/components/PromptInput";
 import { AIAgentProgress } from "@/components/AIAgentProgress";
 import { supabase } from "@/integrations/supabase/client";
@@ -96,11 +95,11 @@ const SoloSolverChat: React.FC<SoloSolverChatProps> = ({ currentUser }) => {
       }
     ];
 
-    updateAgentTasks(initialTasks);
+    setAgentTasks(initialTasks);
 
     try {
       // Update first task to completed
-      updateAgentTasks(prev => prev.map(task => 
+      setAgentTasks(prev => prev.map(task => 
         task.id === 'classify' 
           ? { ...task, status: 'completed' }
           : task.id === 'search'
@@ -126,7 +125,7 @@ const SoloSolverChat: React.FC<SoloSolverChatProps> = ({ currentUser }) => {
       }
 
       // Update search task to completed, orchestrate to in-progress
-      updateAgentTasks(prev => prev.map(task => 
+      setAgentTasks(prev => prev.map(task => 
         task.id === 'search' 
           ? { ...task, status: 'completed' }
           : task.id === 'orchestrate'
@@ -138,7 +137,7 @@ const SoloSolverChat: React.FC<SoloSolverChatProps> = ({ currentUser }) => {
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       // Complete all tasks
-      updateAgentTasks(prev => prev.map(task => 
+      setAgentTasks(prev => prev.map(task => 
         task.id === 'orchestrate' 
           ? { ...task, status: 'completed' }
           : task
@@ -168,7 +167,7 @@ const SoloSolverChat: React.FC<SoloSolverChatProps> = ({ currentUser }) => {
       console.error('Error sending message:', error);
       
       // Mark tasks as failed
-      updateAgentTasks(prev => prev.map(task => 
+      setAgentTasks(prev => prev.map(task => 
         task.status === 'in-progress' || task.status === 'pending'
           ? { ...task, status: 'failed' }
           : task
@@ -193,14 +192,20 @@ const SoloSolverChat: React.FC<SoloSolverChatProps> = ({ currentUser }) => {
     }
   };
 
+  const getBackPath = () => {
+    if (currentUser.role === 'admin') return '/admin/dashboard';
+    if (currentUser.role === 'manager') return '/manager/dashboard';
+    return '/user/dashboard';
+  };
+
   return (
-    <BeamsBackground className="min-h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-purple-950 via-purple-900 to-slate-900">
       <div className="relative z-10 flex flex-col h-screen">
         {/* Header */}
-        <div className="p-4 border-b border-white/20 bg-white/5 backdrop-blur">
+        <div className="p-4 border-b border-white/20 bg-black/20 backdrop-blur">
           <div className="flex items-center justify-between max-w-6xl mx-auto">
             <div className="flex items-center space-x-4">
-              <Link to="/">
+              <Link to={getBackPath()}>
                 <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Back
@@ -233,7 +238,7 @@ const SoloSolverChat: React.FC<SoloSolverChatProps> = ({ currentUser }) => {
                     <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
                       message.sender === 'user' 
                         ? 'bg-primary text-primary-foreground' 
-                        : 'bg-white/10 backdrop-blur text-white'
+                        : 'bg-white/20 backdrop-blur text-white'
                     }`}>
                       {message.sender === 'user' ? (
                         <User className="h-4 w-4" />
@@ -258,7 +263,7 @@ const SoloSolverChat: React.FC<SoloSolverChatProps> = ({ currentUser }) => {
               {isLoading && (
                 <div className="flex justify-start">
                   <div className="flex items-start space-x-2 max-w-[80%]">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-white/10 backdrop-blur text-white">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-white/20 backdrop-blur text-white">
                       <Bot className="h-4 w-4" />
                     </div>
                     <Card className="p-4 bg-white/10 backdrop-blur border-white/20 text-white">
@@ -275,20 +280,20 @@ const SoloSolverChat: React.FC<SoloSolverChatProps> = ({ currentUser }) => {
             </div>
 
             {/* Input */}
-            <div className="p-4 border-t border-white/20 bg-white/5 backdrop-blur">
+            <div className="p-4 border-t border-white/20 bg-black/20 backdrop-blur">
               <PromptInput
                 placeholder="Describe your complaint or concern..."
                 onSubmit={handleSendMessage}
                 onFileUpload={(files) => handleSendMessage("Uploaded files for review", files)}
                 disabled={isLoading}
-                className="bg-white/10 backdrop-blur border-white/20"
+                className="bg-white/10 backdrop-blur border-white/20 text-white placeholder:text-white/60"
               />
             </div>
           </div>
 
           {/* Agent Progress Sidebar */}
           {agentTasks.length > 0 && (
-            <div className="w-80 border-l border-white/20 bg-white/5 backdrop-blur p-4">
+            <div className="w-80 border-l border-white/20 bg-black/10 backdrop-blur p-4">
               <AIAgentProgress 
                 tasks={agentTasks}
                 className="bg-white/10 backdrop-blur border-white/20"
@@ -297,7 +302,7 @@ const SoloSolverChat: React.FC<SoloSolverChatProps> = ({ currentUser }) => {
           )}
         </div>
       </div>
-    </BeamsBackground>
+    </div>
   );
 };
 
