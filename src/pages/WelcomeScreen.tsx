@@ -3,8 +3,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MessageSquare, Users, BarChart3, Shield, Brain, Zap, ArrowRight } from "lucide-react";
+import { MessageSquare, Users, BarChart3, Shield, Brain, Zap, ArrowRight, Bot, Database, Cpu } from "lucide-react";
 import { Link } from "react-router-dom";
+
+interface WelcomeScreenProps {
+  onGetStarted: () => void;
+}
 
 const features = [
   {
@@ -33,6 +37,27 @@ const features = [
   }
 ];
 
+const technicalFeatures = [
+  {
+    icon: Bot,
+    title: "Gemma 3-4B Foundation",
+    description: "Fine-tuned Google Gemma 3-4B model with specialized complaint classification heads",
+    details: "Multi-task learning architecture with separate classification heads for category, priority, and sentiment analysis"
+  },
+  {
+    icon: Database,
+    title: "Amazon Dataset Training",
+    description: "Trained on 500K+ Amazon product reviews and complaints with augmented supervision",
+    details: "Gemini-augmented supervised fine-tuning with synthetic data generation for edge cases"
+  },
+  {
+    icon: Cpu,
+    title: "Hybrid AI Architecture",
+    description: "Gemma for classification + Gemini for orchestration and response generation",
+    details: "Vector embeddings with ChromaDB for semantic search and retrieval-augmented generation"
+  }
+];
+
 const userTypes = [
   {
     type: "Customer",
@@ -51,7 +76,7 @@ const userTypes = [
   }
 ];
 
-const Navbar = () => {
+const Navbar = ({ onGetStarted }: { onGetStarted: () => void }) => {
   return (
     <motion.nav 
       className="fixed top-0 left-0 right-0 z-50 bg-black/20 backdrop-blur-md border-b border-white/10"
@@ -60,29 +85,57 @@ const Navbar = () => {
       transition={{ duration: 0.8 }}
     >
       <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
+        <motion.div 
+          className="flex items-center space-x-2"
+          whileHover={{ scale: 1.05 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
+        >
           <img
             src="/lovable-uploads/704cd890-e36f-4688-8aa1-a02ffa01eb64.png"
             alt="SoloSolve AI"
             className="h-8"
           />
-        </div>
+        </motion.div>
         <div className="hidden md:flex items-center space-x-8">
-          <a href="#features" className="text-white/80 hover:text-white transition-colors">Features</a>
-          <a href="#how-it-works" className="text-white/80 hover:text-white transition-colors">How it Works</a>
-          <a href="#users" className="text-white/80 hover:text-white transition-colors">User Types</a>
+          <motion.a 
+            href="#features" 
+            className="text-white/80 hover:text-white transition-colors"
+            whileHover={{ y: -2 }}
+          >
+            Features
+          </motion.a>
+          <motion.a 
+            href="#technology" 
+            className="text-white/80 hover:text-white transition-colors"
+            whileHover={{ y: -2 }}
+          >
+            Technology
+          </motion.a>
+          <motion.a 
+            href="#users" 
+            className="text-white/80 hover:text-white transition-colors"
+            whileHover={{ y: -2 }}
+          >
+            User Types
+          </motion.a>
         </div>
-        <Link to="/login">
-          <Button className="bg-purple-600 hover:bg-purple-700 text-white">
-            Try Demo
+        <motion.div
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <Button 
+            onClick={onGetStarted}
+            className="bg-purple-600 hover:bg-purple-700 text-white"
+          >
+            Try SoloSolver Chat
           </Button>
-        </Link>
+        </motion.div>
       </div>
     </motion.nav>
   );
 };
 
-const HeroSection = () => {
+const HeroSection = ({ onGetStarted }: { onGetStarted: () => void }) => {
   return (
     <section className="relative min-h-screen flex items-center justify-center px-6">
       <div className="container mx-auto text-center">
@@ -92,28 +145,62 @@ const HeroSection = () => {
           transition={{ duration: 1 }}
           className="max-w-4xl mx-auto"
         >
-          <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
+          <motion.h1 
+            className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.2 }}
+          >
             The Future of
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
+            <motion.span 
+              className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400"
+              animate={{ 
+                backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"]
+              }}
+              transition={{ 
+                duration: 3, 
+                repeat: Infinity,
+                ease: "linear"
+              }}
+            >
               {" "}Complaint{" "}
-            </span>
+            </motion.span>
             Management
-          </h1>
-          <p className="text-xl md:text-2xl text-white/80 mb-8 max-w-3xl mx-auto">
+          </motion.h1>
+          <motion.p 
+            className="text-xl md:text-2xl text-white/80 mb-8 max-w-3xl mx-auto"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.4 }}
+          >
             Powered by cutting-edge AI, SoloSolver revolutionizes customer service with intelligent 
             complaint classification, automated responses, and real-time analytics.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/login">
-              <Button size="lg" className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-4 text-lg">
-                Start Demo
-                <ArrowRight className="ml-2 h-5 w-5" />
+          </motion.p>
+          <motion.div 
+            className="flex justify-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.6 }}
+          >
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Button 
+                size="lg" 
+                onClick={onGetStarted}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-12 py-6 text-xl font-semibold"
+              >
+                Try SoloSolver Chat Now
+                <motion.div
+                  animate={{ x: [0, 5, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  <ArrowRight className="ml-3 h-6 w-6" />
+                </motion.div>
               </Button>
-            </Link>
-            <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 px-8 py-4 text-lg">
-              Watch Demo
-            </Button>
-          </div>
+            </motion.div>
+          </motion.div>
         </motion.div>
       </div>
     </section>
@@ -148,12 +235,17 @@ const FeaturesSection = () => {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: index * 0.1 }}
               viewport={{ once: true }}
+              whileHover={{ y: -10, transition: { duration: 0.2 } }}
             >
               <Card className="bg-white/5 backdrop-blur border-white/10 hover:bg-white/10 transition-all duration-300 h-full">
                 <CardContent className="p-6">
-                  <div className={`w-12 h-12 ${feature.color} rounded-lg flex items-center justify-center mb-4`}>
+                  <motion.div 
+                    className={`w-12 h-12 ${feature.color} rounded-lg flex items-center justify-center mb-4`}
+                    whileHover={{ rotate: 360 }}
+                    transition={{ duration: 0.5 }}
+                  >
                     <feature.icon className="h-6 w-6 text-white" />
-                  </div>
+                  </motion.div>
                   <h3 className="text-xl font-semibold text-white mb-3">
                     {feature.title}
                   </h3>
@@ -170,36 +262,9 @@ const FeaturesSection = () => {
   );
 };
 
-const HowItWorksSection = () => {
-  const steps = [
-    {
-      step: "01",
-      title: "Customer Submits Complaint",
-      description: "User describes their issue through our intelligent chat interface",
-      icon: MessageSquare
-    },
-    {
-      step: "02", 
-      title: "AI Classification",
-      description: "Gemma 3-4B analyzes and classifies the complaint with high accuracy",
-      icon: Brain
-    },
-    {
-      step: "03",
-      title: "Smart Orchestration", 
-      description: "Gemini searches transaction history and generates personalized responses",
-      icon: Zap
-    },
-    {
-      step: "04",
-      title: "Real-time Analytics",
-      description: "All interactions are tracked and analyzed for continuous improvement",
-      icon: BarChart3
-    }
-  ];
-
+const TechnologySection = () => {
   return (
-    <section id="how-it-works" className="py-20 px-6 bg-black/20">
+    <section id="technology" className="py-20 px-6 bg-black/20">
       <div className="container mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 50 }}
@@ -209,34 +274,47 @@ const HowItWorksSection = () => {
           className="text-center mb-16"
         >
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-            How SoloSolver Works
+            Advanced AI Technology
           </h2>
           <p className="text-xl text-white/70 max-w-3xl mx-auto">
-            Our AI-powered workflow ensures every complaint is processed efficiently and accurately
+            Built on state-of-the-art machine learning with Gemini-augmented supervised training 
+            on Amazon's extensive dataset of customer interactions.
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {steps.map((step, index) => (
+        <div className="space-y-8">
+          {technicalFeatures.map((feature, index) => (
             <motion.div
               key={index}
-              initial={{ opacity: 0, x: -50 }}
+              initial={{ opacity: 0, x: index % 2 === 0 ? -50 : 50 }}
               whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: index * 0.2 }}
+              transition={{ duration: 0.8, delay: index * 0.2 }}
               viewport={{ once: true }}
-              className="relative"
             >
-              <div className="text-center">
-                <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <step.icon className="h-8 w-8 text-white" />
-                </div>
-                <div className="text-4xl font-bold text-purple-400 mb-2">{step.step}</div>
-                <h3 className="text-xl font-semibold text-white mb-3">{step.title}</h3>
-                <p className="text-white/70">{step.description}</p>
-              </div>
-              {index < steps.length - 1 && (
-                <div className="hidden lg:block absolute top-8 left-full w-full h-0.5 bg-gradient-to-r from-purple-600 to-transparent"></div>
-              )}
+              <Card className="bg-white/5 backdrop-blur border-white/10 hover:bg-white/10 transition-all duration-300">
+                <CardContent className="p-8">
+                  <div className="flex items-start space-x-6">
+                    <motion.div 
+                      className="w-16 h-16 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0"
+                      whileHover={{ scale: 1.1, rotate: 5 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <feature.icon className="h-8 w-8 text-white" />
+                    </motion.div>
+                    <div className="flex-1">
+                      <h3 className="text-2xl font-bold text-white mb-3">
+                        {feature.title}
+                      </h3>
+                      <p className="text-lg text-white/80 mb-4">
+                        {feature.description}
+                      </p>
+                      <p className="text-white/60 text-sm">
+                        {feature.details}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </motion.div>
           ))}
         </div>
@@ -272,6 +350,7 @@ const UserTypesSection = () => {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: index * 0.2 }}
               viewport={{ once: true }}
+              whileHover={{ y: -10, transition: { duration: 0.2 } }}
             >
               <Card className="bg-white/5 backdrop-blur border-white/10 hover:bg-white/10 transition-all duration-300 h-full">
                 <CardContent className="p-8">
@@ -279,10 +358,21 @@ const UserTypesSection = () => {
                   <p className="text-white/70 mb-6">{user.description}</p>
                   <ul className="space-y-3">
                     {user.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-center text-white/80">
-                        <div className="w-2 h-2 bg-purple-400 rounded-full mr-3"></div>
+                      <motion.li 
+                        key={featureIndex} 
+                        className="flex items-center text-white/80"
+                        initial={{ opacity: 0, x: -20 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: (index * 0.2) + (featureIndex * 0.1) }}
+                        viewport={{ once: true }}
+                      >
+                        <motion.div 
+                          className="w-2 h-2 bg-purple-400 rounded-full mr-3"
+                          animate={{ scale: [1, 1.2, 1] }}
+                          transition={{ duration: 2, repeat: Infinity, delay: featureIndex * 0.2 }}
+                        />
                         {feature}
-                      </li>
+                      </motion.li>
                     ))}
                   </ul>
                 </CardContent>
@@ -295,7 +385,7 @@ const UserTypesSection = () => {
   );
 };
 
-const CTASection = () => {
+const CTASection = ({ onGetStarted }: { onGetStarted: () => void }) => {
   return (
     <section className="py-20 px-6 bg-gradient-to-r from-purple-900/50 to-pink-900/50">
       <div className="container mx-auto text-center">
@@ -309,36 +399,69 @@ const CTASection = () => {
             Ready to Transform Your Customer Service?
           </h2>
           <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto">
-            Experience the power of AI-driven complaint management. Try our demo with simulated users.
+            Experience the power of AI-driven complaint management. Try our intelligent chat system with simulated users.
           </p>
-          <Link to="/login">
-            <Button size="lg" className="bg-white text-purple-900 hover:bg-gray-100 px-12 py-4 text-lg font-semibold">
-              Start Demo Now
-              <ArrowRight className="ml-3 h-5 w-5" />
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Button 
+              size="lg" 
+              onClick={onGetStarted}
+              className="bg-white text-purple-900 hover:bg-gray-100 px-12 py-4 text-lg font-semibold"
+            >
+              Start SoloSolver Chat Now
+              <motion.div
+                animate={{ x: [0, 5, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
+                <ArrowRight className="ml-3 h-5 w-5" />
+              </motion.div>
             </Button>
-          </Link>
+          </motion.div>
         </motion.div>
       </div>
     </section>
   );
 };
 
-export const WelcomeScreen = () => {
+export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onGetStarted }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-950 via-purple-900 to-slate-900 overflow-x-hidden">
       {/* Animated background elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute top-1/2 -left-40 w-60 h-60 bg-pink-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute -bottom-40 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse delay-2000"></div>
+        <motion.div 
+          className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl"
+          animate={{ 
+            scale: [1, 1.2, 1],
+            opacity: [0.3, 0.6, 0.3]
+          }}
+          transition={{ duration: 4, repeat: Infinity }}
+        />
+        <motion.div 
+          className="absolute top-1/2 -left-40 w-60 h-60 bg-pink-500/20 rounded-full blur-3xl"
+          animate={{ 
+            scale: [1, 1.3, 1],
+            opacity: [0.2, 0.5, 0.2]
+          }}
+          transition={{ duration: 5, repeat: Infinity, delay: 1 }}
+        />
+        <motion.div 
+          className="absolute -bottom-40 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"
+          animate={{ 
+            scale: [1, 1.1, 1],
+            opacity: [0.1, 0.3, 0.1]
+          }}
+          transition={{ duration: 6, repeat: Infinity, delay: 2 }}
+        />
       </div>
 
-      <Navbar />
-      <HeroSection />
+      <Navbar onGetStarted={onGetStarted} />
+      <HeroSection onGetStarted={onGetStarted} />
       <FeaturesSection />
-      <HowItWorksSection />
+      <TechnologySection />
       <UserTypesSection />
-      <CTASection />
+      <CTASection onGetStarted={onGetStarted} />
     </div>
   );
 };
