@@ -1,0 +1,427 @@
+
+# SoloSolver AI Complaint Resolution System - Comprehensive Implementation Plan
+
+## Project Overview
+An AI-powered complaint management system using dual-LLM architecture with Gemini 2.5 Flash as orchestrator and fine-tuned Gemma 3 for classification, integrated with ChromaDB for knowledge retrieval and Firebase Cloud Functions for backend processing.
+
+## 1. Architecture Overview
+
+### Dual-LLM System
+- **Orchestrator LLM**: Gemini 2.5 Flash (conversation management, response synthesis)
+- **Classifier LLM**: Fine-tuned Gemma 3-4B (8-label multi-task classification)
+- **Knowledge Base**: ChromaDB instances for policies and user profiles
+- **Data Layer**: Parquet transaction history for user dynamic profiles
+
+### Component Flow
+```
+[User Input] -> [Chat Orchestrator] -> [Prompt Construction with History]
+      ^                   |
+      |                   v
+[Bot Response] <- [Rule Engine] <- [Model Classifications] <- [Gemma 3 Service]
+                       ^
+                       |
+              [ChromaDB Knowledge Retrieval]
+```
+
+## 2. Technical Stack & Dependencies
+
+### Frontend (React/Vite/TypeScript)
+- React 18.3.1
+- Vite build system
+- Tailwind CSS for styling
+- shadcn/ui components
+- TypeScript for type safety
+
+### Backend (Firebase Cloud Functions - Python)
+```python
+# requirements.txt
+firebase-functions
+firebase-admin
+pandas
+pyarrow
+torch
+transformers==4.50.0
+peft>=0.7.0
+huggingface_hub
+chromadb>=0.4.24
+sentence-transformers>=2.2.0
+accelerate
+bitsandbytes
+google-generativeai
+```
+
+### Model Configurations
+- **Student Model**: "google/gemma-3-4b-it"
+- **Fine-tuned Repo**: "ShovalBenjer/gemma-3-4b-fashion-multitask_A4000_v1"
+- **Orchestrator Model**: "gemini-2.5-flash-preview-05-20"
+- **Embedding Model**: 'all-MiniLM-L6-v2'
+
+## 3. Data Structure & File Organization
+
+### Local Project Structure
+```
+/solosolver-chatbot
+├── functions/
+│   ├── data/
+│   │   ├── transaction_history_for_sft_gen_v5.parquet
+│   │   ├── policy_chroma_db_final_v5/
+│   │   │   └── chroma.sqlite3
+│   │   └── udp_chroma_db_final_v5/
+│   │       └── chroma.sqlite3
+│   ├── main.py
+│   └── requirements.txt
+└── src/
+    ├── pages/
+    │   └── SolosolverChat.tsx
+    └── components/
+        └── AIChatInput.tsx
+```
+
+### Classification Labels & Categories
+```python
+COMPLAINT_CATEGORIES = ["Sizing Issue", "Damaged Item", "Not as Described", 
+                       "Shipping Problem", "Policy Inquiry", "Late Delivery", 
+                       "Wrong Item Received", "Quality Issue", "Return Process Issue", 
+                       "Other", "N/A"]
+
+DECISION_TYPES = ["Full_Refund_No_Return", "Full_Refund_With_Return", 
+                 "Partial_Refund_No_Return", "Partial_Refund_With_Return", 
+                 "Exchange_Offered", "Deny_Request_Policy_Violation", 
+                 "Further_Information_Required", "Escalate_To_Human_Agent", 
+                 "Provide_Policy_Information", "Other", "N/A"]
+
+EMOTIONAL_TONES = ["Empathetic_Standard", "Neutral_Direct", "Understanding_Apologetic", 
+                  "Firm_Polite", "Helpful_Informative", "Other", "N/A"]
+
+REFUND_PERCENTAGES = [0, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 100]
+
+SENTIMENT_CATEGORIES = ["positive", "neutral", "negative", "mixed", "very_negative", "N/A"]
+
+AGGRESSION_LEVELS = ["none", "low", "medium", "high", "N/A"]
+```
+
+## 4. Gemma 3 Model Implementation
+
+### Custom Model Class Configuration
+```python
+class GemmaComplaintResolver(nn.Module):
+    def __init__(self, base_model_name_or_path, num_labels_dict, model_config_for_base_loading, dropout_rate=0.1):
+        super().__init__()
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=False,
+            bnb_4bit_compute_dtype=torch.bfloat16
+        )
+        # Implementation details for multi-head classification
+```
+
+### Label Mapping Configuration
+```python
+num_labels_dict_global = {
+    "is_actionable": 2,
+    "complaint_category": len(COMPLAINT_CATEGORIES),
+    "decision_recommendation": len(DECISION_TYPES),
+    "info_complete": 2,
+    "tone": len(EMOTIONAL_TONES),
+    "refund_percentage": len(REFUND_PERCENTAGES),
+    "sentiment": len(SENTIMENT_CATEGORIES),
+    "aggression": len(AGGRESSION_LEVELS)
+}
+```
+
+## 5. Prompt Engineering Templates
+
+### Student Prompt Base (Gemma 3)
+```python
+STUDENT_PROMPT_BASE = """
+Customer Complaint:
+Title: {complaint_title_text}
+Review: {complaint_body_text}
+Rating: {complaint_rating_given}
+Verified Purchase: {complaint_verified_purchase}
+Complaint Date: {complaint_timestamp_iso}
+Inferred Complaint Driver: {complaint_inferred_driver_for_gemma}
+
+User Profile Summary:
+{user_dynamic_profile_summary}
+
+Product Information:
+Name: {product_title}
+ASIN: {product_asin}
+Price: ${product_price}
+Category: {product_main_category} / {product_sub_category}
+Store: {product_store}
+Image URLs (if any): {image_urls_str}
+
+Simulated Purchase Date: {purchase_date_str}
+
+Applicable Policies (Primary Context):
+{retrieved_relevant_policies_text}
+
+Other Policies (Secondary Context):
+{retrieved_distractor_policies_text}
+
+Based on all the above, generate the structured JSON analysis:
+"""
+```
+
+### Orchestrator Prompt (Gemini 2.5 Flash)
+```python
+ORCHESTRATOR_PROMPT_TEMPLATE = """
+You are "SoloSolver", a lead customer support agent. Your goal is to provide a helpful, accurate, and empathetic response in a multi-turn chat.
+
+**CONTEXT:**
+1. **Full Conversation History:**
+{chat_history}
+2. **Latest User Message:**
+"{current_user_input}"
+3. **Gemma-3 Classification Results:**
+{gemma_classifications}
+4. **User Dynamic Profile Summary:**
+{udp_summary}
+5. **Retrieved Company Policies:**
+{policy_snippets}
+
+**YOUR TASK:**
+- Quote policies directly when relevant
+- Use Gemma classifications to guide logic
+- Adjust tone based on UDP flags
+- Provide conversational, contextual responses
+- Do NOT output JSON, provide natural language response
+
+**Your Response:**
+"""
+```
+
+## 6. ChromaDB Knowledge Retrieval
+
+### Database Collections
+- **Policy Collection**: "amazon_policies_v3" 
+- **UDP Collection**: "user_profiles_v2"
+- **Embedding Function**: SentenceTransformerEmbeddingFunction(model_name='all-MiniLM-L6-v2')
+
+### Retrieval Functions
+```python
+def get_policy_snippets_from_db(complaint_text, pol_coll, num_golden=2, num_distractors=2):
+    # Query policy database for relevant and distractor policies
+    # Return formatted policy text for prompt inclusion
+
+def get_udp_summary_and_features_from_db(user_id, current_complaint_timestamp_dt, full_tran_hist_df, udp_coll):
+    # Calculate user dynamic profile features
+    # Return summary and feature flags for context
+```
+
+## 7. Firebase Cloud Function Implementation
+
+### Function Configuration
+```python
+@https_fn.on_request(memory=https_fn.MemoryOption.G_B_4, cpu=2, timeout_sec=300)
+def analyzeComplaint(req: https_fn.Request) -> https_fn.Response:
+    # Main endpoint orchestrating the entire process
+```
+
+### Environment Variables Required
+```bash
+export GEMINI_API_KEY="your_gemini_api_key"
+export HUGGINGFACE_TOKEN="your_hf_token"
+```
+
+### Global Caching Strategy
+```python
+# Global variables for model caching (warm starts)
+gemma_model = None
+gemma_tokenizer = None
+gemini_model_instance = None
+policy_collection = None
+udp_collection = None
+tran_hist_df = None
+```
+
+## 8. Frontend Implementation
+
+### Chat Interface Component
+```typescript
+interface Message {
+  sender: 'user' | 'bot';
+  text: string;
+}
+
+interface Turn {
+  user: string;
+  bot: string;
+}
+
+// State management for chat history and turn tracking
+const [displayHistory, setDisplayHistory] = useState<Message[]>([]);
+const [turnHistory, setTurnHistory] = useState<Turn[]>([]);
+```
+
+### API Communication
+```typescript
+const response = await fetch(functionUrl, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    userId: MOCK_USER_ID,
+    complaintText: complaintText,
+    chatHistory: turnHistory,
+  }),
+});
+```
+
+## 9. OpenMCP Integration Strategy
+
+### MCP Server Setup
+```python
+from mcp.server.fastmcp import FastMCP
+
+mcp = FastMCP("Gemini Orchestrator")
+
+@mcp.tool()
+def search_sql(query: str) -> str:
+    """Search the SQL database with a query"""
+    return f"Results for: {query}"
+
+@mcp.tool()
+def classify_complaint(text: str) -> str:
+    """Classify complaint using Gemma 3"""
+    return "Classification: Sizing Issue"
+```
+
+### LLM Orchestration Workflow
+1. **Gemini 2.5 Flash** receives user query
+2. Orchestrates calls to:
+   - SQL search tools (via MCP server)
+   - Gemma 3 classifier for structured outputs
+3. **Gemini** applies decision logic and responds
+
+### SOTA Base Prompt for Gemini
+```
+"You are a customer service LLM assistant. Given the following user message and database/search results, classify the complaint, select the appropriate decision type, and compose a formal response.
+
+Return a JSON object with:
+- complaint_category
+- decision_type
+- emotional_tone
+- suggested_refund_percentage
+- sentiment
+- aggression
+- formal_answer (well-written, user-facing response)
+
+Always justify your decision type and ensure the response is clear, empathetic, and actionable."
+```
+
+## 10. Deployment Process
+
+### Local Development Setup
+```bash
+# Create virtual environment
+python -m venv dotenv
+source dotenv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Firebase CLI setup
+npm install -g firebase-tools
+firebase login
+firebase init functions
+```
+
+### Deployment Commands
+```bash
+# Deploy backend
+firebase deploy --only functions
+
+# Get function URL from output
+# Configure frontend with deployed URL
+
+# Start frontend development
+npm run dev
+```
+
+## 11. Advanced Features & Enhancements
+
+### LLM as Judge Implementation
+- **Phase 1**: Self-correction via secondary LLM call
+- **Judge Prompt**: Quality assurance for policy compliance and empathy
+- **Logic**: Approve/Reject with re-generation capability
+
+### ReAct (Reason + Act) Agent Loop
+- **Phase 2**: Dynamic tool selection
+- **Actions**: [classify_with_gemma], [lookup_policy], [ask_clarifying_question], [respond_to_user]
+- **Maximum flexibility** for complex decision trees
+
+### Performance Optimizations
+- **Model Caching**: Global variables for warm starts
+- **Batch Processing**: Multiple classification heads in single forward pass
+- **Memory Management**: 4GB function memory allocation
+
+## 12. Database Schema Requirements
+
+### Supabase Tables
+```sql
+-- User profiles for authentication
+CREATE TABLE profiles (
+  id UUID PRIMARY KEY,
+  user_id TEXT UNIQUE NOT NULL,
+  email TEXT,
+  name TEXT
+);
+
+-- Complaints tracking
+CREATE TABLE complaints (
+  id UUID PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  complaint_text TEXT,
+  category TEXT,
+  status TEXT DEFAULT 'new',
+  created_at TIMESTAMP DEFAULT now()
+);
+```
+
+### RLS Policies
+- Enable Row Level Security on all tables
+- Users can only access their own data
+- Admin roles for cross-user visibility
+
+## 13. Testing & Quality Assurance
+
+### Test Categories
+- **Unit Tests**: Individual function validation
+- **Integration Tests**: Full pipeline testing
+- **Performance Tests**: Response time benchmarks
+- **Accuracy Tests**: Classification validation
+
+### Monitoring & Logging
+- Firebase Function logs for debugging
+- Classification accuracy tracking
+- Response time monitoring
+- User satisfaction metrics
+
+## 14. Security Considerations
+
+### API Security
+- Input validation and sanitization
+- Rate limiting on Firebase Functions
+- Secure API key management
+
+### Data Privacy
+- User data encryption at rest
+- Minimal data retention policies
+- GDPR compliance measures
+
+## 15. Scalability Planning
+
+### Horizontal Scaling
+- Firebase automatic scaling
+- ChromaDB cluster configuration
+- Load balancing strategies
+
+### Cost Optimization
+- Function cold start mitigation
+- Efficient model loading
+- Database query optimization
+
+This comprehensive plan provides all necessary technical specifications, configurations, and implementation details for building the SoloSolver AI complaint resolution system with dual-LLM architecture, ChromaDB integration, and advanced features like OpenMCP orchestration.
