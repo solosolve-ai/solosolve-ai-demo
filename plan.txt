@@ -2,7 +2,7 @@
 # SoloSolver AI Complaint Resolution System - Comprehensive Implementation Plan
 
 ## Project Overview
-An AI-powered complaint management system using dual-LLM architecture with Gemini 2.5 Flash as orchestrator and fine-tuned Gemma 3 for classification, integrated with ChromaDB for knowledge retrieval and Firebase Cloud Functions for backend processing.
+An AI-powered complaint management system using dual-LLM architecture with Gemini 2.5 Flash as orchestrator and fine-tuned Gemma 3-4B for classification, integrated with Supabase database for transaction history and ChromaDB for knowledge retrieval.
 
 ## 1. Architecture Overview
 
@@ -10,17 +10,18 @@ An AI-powered complaint management system using dual-LLM architecture with Gemin
 - **Orchestrator LLM**: Gemini 2.5 Flash (conversation management, response synthesis)
 - **Classifier LLM**: Fine-tuned Gemma 3-4B (8-label multi-task classification)
 - **Knowledge Base**: ChromaDB instances for policies and user profiles
-- **Data Layer**: Parquet transaction history for user dynamic profiles
+- **Data Layer**: Supabase database with transaction history from CSV data
+- **Search Tool**: Gemini search capabilities in transaction database
 
 ### Component Flow
 ```
 [User Input] -> [Chat Orchestrator] -> [Prompt Construction with History]
       ^                   |
       |                   v
-[Bot Response] <- [Rule Engine] <- [Model Classifications] <- [Gemma 3 Service]
+[Bot Response] <- [Rule Engine] <- [Model Classifications] <- [Gemma 3-4B Service]
                        ^
                        |
-              [ChromaDB Knowledge Retrieval]
+              [Supabase Transaction Search] + [ChromaDB Knowledge Retrieval]
 ```
 
 ## 2. Technical Stack & Dependencies
@@ -31,397 +32,482 @@ An AI-powered complaint management system using dual-LLM architecture with Gemin
 - Tailwind CSS for styling
 - shadcn/ui components
 - TypeScript for type safety
+- Supabase client for database access
 
-### Backend (Firebase Cloud Functions - Python)
-```python
-# requirements.txt
-firebase-functions
-firebase-admin
-pandas
-pyarrow
-torch
-transformers==4.50.0
-peft>=0.7.0
-huggingface_hub
-chromadb>=0.4.24
-sentence-transformers>=2.2.0
-accelerate
-bitsandbytes
-google-generativeai
+### Backend (Supabase Edge Functions - Deno/TypeScript)
+```typescript
+// Import map for Supabase Edge Functions
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import { HfInference } from 'https://esm.sh/@huggingface/inference@2.3.2'
 ```
 
 ### Model Configurations
-- **Student Model**: "google/gemma-3-4b-it"
-- **Fine-tuned Repo**: "ShovalBenjer/gemma-3-4b-fashion-multitask_A4000_v1"
+- **Base Model**: "google/gemma-3-4b-it" (inherited from Hugging Face)
+- **Fine-tuned Repo**: "ShovalBenjer/gemma-3-4b-fashion-multitask_A4000_v7"
 - **Orchestrator Model**: "gemini-2.5-flash-preview-05-20"
 - **Embedding Model**: 'all-MiniLM-L6-v2'
 
-## 3. Data Structure & File Organization
+## 3. Database Structure & Transaction History
 
-### Local Project Structure
+### Supabase Database Schema
+
+#### Transaction History Table (from CSV)
+```sql
+CREATE TABLE public.transaction_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  rating_review DECIMAL,
+  title_review TEXT,
+  text_review TEXT,
+  images_review JSONB,
+  asin_review TEXT,
+  parent_asin TEXT,
+  user_id TEXT NOT NULL,
+  timestamp_review BIGINT,
+  helpful_vote_review INTEGER,
+  verified_purchase_review BOOLEAN,
+  text_review_cleaned TEXT,
+  title_review_cleaned TEXT,
+  timestamp_review_dt TIMESTAMP,
+  inferred_complaint_driver TEXT,
+  main_category TEXT,
+  title TEXT,
+  average_rating DECIMAL,
+  rating_number INTEGER,
+  features JSONB,
+  description TEXT,
+  price DECIMAL,
+  images JSONB,
+  videos JSONB,
+  store TEXT,
+  categories JSONB,
+  details JSONB,
+  bought_together JSONB,
+  subtitle TEXT,
+  author TEXT,
+  features_str TEXT,
+  description_str TEXT,
+  categories_str TEXT,
+  bought_together_str TEXT,
+  complaint_title_text TEXT,
+  complaint_body_text TEXT,
+  complaint_rating_given DECIMAL,
+  complaint_verified_purchase BOOLEAN,
+  complaint_helpful_votes INTEGER,
+  product_title TEXT,
+  product_asin_display TEXT,
+  product_price_numeric DECIMAL,
+  product_main_category TEXT,
+  product_store TEXT,
+  product_features TEXT,
+  product_avg_rating DECIMAL,
+  product_rating_number INTEGER,
+  image_urls_str TEXT,
+  product_price_display TEXT,
+  product_sub_category TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Create indexes for search optimization
+CREATE INDEX idx_transaction_user_id ON transaction_history(user_id);
+CREATE INDEX idx_transaction_complaint_category ON transaction_history(inferred_complaint_driver);
+CREATE INDEX idx_transaction_product_category ON transaction_history(product_main_category);
+CREATE INDEX idx_transaction_timestamp ON transaction_history(timestamp_review_dt);
+
+-- Enable full-text search
+CREATE INDEX idx_transaction_text_search ON transaction_history 
+USING gin(to_tsvector('english', complaint_body_text || ' ' || complaint_title_text));
 ```
-/solosolver-chatbot
-├── functions/
-│   ├── data/
-│   │   ├── transaction_history_for_sft_gen_v5.parquet
-│   │   ├── policy_chroma_db_final_v5/
-│   │   │   └── chroma.sqlite3
-│   │   └── udp_chroma_db_final_v5/
-│   │       └── chroma.sqlite3
-│   ├── main.py
-│   └── requirements.txt
-└── src/
-    ├── pages/
-    │   └── SolosolverChat.tsx
-    └── components/
-        └── AIChatInput.tsx
+
+#### User Profiles Table
+```sql
+CREATE TABLE public.profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT UNIQUE NOT NULL,
+  email TEXT,
+  name TEXT,
+  complaint_count INTEGER DEFAULT 0,
+  avg_satisfaction_rating DECIMAL,
+  is_chronic_complainer BOOLEAN DEFAULT false,
+  is_aggressive_tendency BOOLEAN DEFAULT false,
+  total_purchase_value DECIMAL DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
 ```
 
-### Classification Labels & Categories
-```python
-COMPLAINT_CATEGORIES = ["Sizing Issue", "Damaged Item", "Not as Described", 
-                       "Shipping Problem", "Policy Inquiry", "Late Delivery", 
-                       "Wrong Item Received", "Quality Issue", "Return Process Issue", 
-                       "Other", "N/A"]
+### CSV Data Import Structure
+Based on the provided CSV row, the system handles:
+- **Review Data**: rating_review, title_review, text_review, images_review
+- **Product Data**: asin_review, main_category, title, price, features, description
+- **User Data**: user_id, timestamp_review, verified_purchase_review
+- **Complaint Analysis**: inferred_complaint_driver, complaint_title_text, complaint_body_text
+- **Product Details**: product_title, product_asin_display, product_price_numeric, product_main_category
 
-DECISION_TYPES = ["Full_Refund_No_Return", "Full_Refund_With_Return", 
-                 "Partial_Refund_No_Return", "Partial_Refund_With_Return", 
-                 "Exchange_Offered", "Deny_Request_Policy_Violation", 
-                 "Further_Information_Required", "Escalate_To_Human_Agent", 
-                 "Provide_Policy_Information", "Other", "N/A"]
-
-EMOTIONAL_TONES = ["Empathetic_Standard", "Neutral_Direct", "Understanding_Apologetic", 
-                  "Firm_Polite", "Helpful_Informative", "Other", "N/A"]
-
-REFUND_PERCENTAGES = [0, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 100]
-
-SENTIMENT_CATEGORIES = ["positive", "neutral", "negative", "mixed", "very_negative", "N/A"]
-
-AGGRESSION_LEVELS = ["none", "low", "medium", "high", "N/A"]
-```
-
-## 4. Gemma 3 Model Implementation
+## 4. Gemma 3-4B Model Implementation
 
 ### Custom Model Class Configuration
-```python
-class GemmaComplaintResolver(nn.Module):
-    def __init__(self, base_model_name_or_path, num_labels_dict, model_config_for_base_loading, dropout_rate=0.1):
-        super().__init__()
-        bnb_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_use_double_quant=False,
-            bnb_4bit_compute_dtype=torch.bfloat16
-        )
-        # Implementation details for multi-head classification
+```typescript
+// Gemma 3-4B Integration via Hugging Face Inference API
+interface GemmaClassificationRequest {
+  inputs: string;
+  parameters?: {
+    max_new_tokens?: number;
+    temperature?: number;
+    do_sample?: boolean;
+  };
+}
+
+interface GemmaClassificationResponse {
+  is_actionable: boolean;
+  complaint_category: string;
+  decision_recommendation: string;
+  info_complete: boolean;
+  tone: string;
+  refund_percentage: number;
+  sentiment: string;
+  aggression: string;
+}
 ```
 
 ### Label Mapping Configuration
-```python
-num_labels_dict_global = {
-    "is_actionable": 2,
-    "complaint_category": len(COMPLAINT_CATEGORIES),
-    "decision_recommendation": len(DECISION_TYPES),
-    "info_complete": 2,
-    "tone": len(EMOTIONAL_TONES),
-    "refund_percentage": len(REFUND_PERCENTAGES),
-    "sentiment": len(SENTIMENT_CATEGORIES),
-    "aggression": len(AGGRESSION_LEVELS)
-}
+```typescript
+const CLASSIFICATION_LABELS = {
+  COMPLAINT_CATEGORIES: ["Sizing Issue", "Damaged Item", "Not as Described", 
+                        "Shipping Problem", "Policy Inquiry", "Late Delivery", 
+                        "Wrong Item Received", "Quality Issue", "Return Process Issue", 
+                        "Other", "N/A"],
+  DECISION_TYPES: ["Full_Refund_No_Return", "Full_Refund_With_Return", 
+                  "Partial_Refund_No_Return", "Partial_Refund_With_Return", 
+                  "Exchange_Offered", "Deny_Request_Policy_Violation", 
+                  "Further_Information_Required", "Escalate_To_Human_Agent", 
+                  "Provide_Policy_Information", "Other", "N/A"],
+  EMOTIONAL_TONES: ["Empathetic_Standard", "Neutral_Direct", "Understanding_Apologetic", 
+                   "Firm_Polite", "Helpful_Informative", "Other", "N/A"],
+  REFUND_PERCENTAGES: [0, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 100],
+  SENTIMENT_CATEGORIES: ["positive", "neutral", "negative", "mixed", "very_negative", "N/A"],
+  AGGRESSION_LEVELS: ["none", "low", "medium", "high", "N/A"]
+};
 ```
 
 ## 5. Prompt Engineering Templates
 
-### Student Prompt Base (Gemma 3)
-```python
-STUDENT_PROMPT_BASE = """
-Customer Complaint:
-Title: {complaint_title_text}
-Review: {complaint_body_text}
-Rating: {complaint_rating_given}
-Verified Purchase: {complaint_verified_purchase}
-Complaint Date: {complaint_timestamp_iso}
-Inferred Complaint Driver: {complaint_inferred_driver_for_gemma}
+### Student Prompt Base (Gemma 3-4B)
+```typescript
+const GEMMA_PROMPT_TEMPLATE = `
+<start_of_turn>user
+Customer Complaint Analysis Request:
 
-User Profile Summary:
-{user_dynamic_profile_summary}
+Complaint Details:
+- Title: {complaint_title}
+- Content: {complaint_content}
+- Rating: {rating}
+- Verified Purchase: {verified_purchase}
+- Date: {complaint_date}
+
+User Context:
+{user_profile_summary}
 
 Product Information:
-Name: {product_title}
-ASIN: {product_asin}
-Price: ${product_price}
-Category: {product_main_category} / {product_sub_category}
-Store: {product_store}
-Image URLs (if any): {image_urls_str}
+- Name: {product_name}
+- ASIN: {product_asin}
+- Category: {product_category}
+- Price: {product_price}
 
-Simulated Purchase Date: {purchase_date_str}
+Relevant Policies:
+{policy_context}
 
-Applicable Policies (Primary Context):
-{retrieved_relevant_policies_text}
-
-Other Policies (Secondary Context):
-{retrieved_distractor_policies_text}
-
-Based on all the above, generate the structured JSON analysis:
-"""
+Analyze this complaint and provide structured classification.
+<end_of_turn>
+<start_of_turn>model
+`;
 ```
 
 ### Orchestrator Prompt (Gemini 2.5 Flash)
-```python
-ORCHESTRATOR_PROMPT_TEMPLATE = """
-You are "SoloSolver", a lead customer support agent. Your goal is to provide a helpful, accurate, and empathetic response in a multi-turn chat.
+```typescript
+const ORCHESTRATOR_PROMPT_TEMPLATE = `
+You are "SoloSolver", an expert customer support agent with access to multiple data sources.
 
 **CONTEXT:**
-1. **Full Conversation History:**
+1. **Conversation History:**
 {chat_history}
-2. **Latest User Message:**
+
+2. **Current User Message:**
 "{current_user_input}"
-3. **Gemma-3 Classification Results:**
+
+3. **Gemma 3-4B Classification Results:**
 {gemma_classifications}
-4. **User Dynamic Profile Summary:**
-{udp_summary}
-5. **Retrieved Company Policies:**
+
+4. **User Profile & History:**
+{user_profile_data}
+
+5. **Transaction Search Results:**
+{transaction_search_results}
+
+6. **Policy Knowledge:**
 {policy_snippets}
 
+**TOOLS AVAILABLE:**
+- Transaction database search for user history
+- Policy database for company guidelines
+- User behavior analysis
+- Classification insights from specialized AI
+
 **YOUR TASK:**
-- Quote policies directly when relevant
-- Use Gemma classifications to guide logic
-- Adjust tone based on UDP flags
-- Provide conversational, contextual responses
-- Do NOT output JSON, provide natural language response
+Provide a helpful, empathetic, and policy-compliant response. Use transaction history to personalize the response and reference specific policies when applicable.
 
-**Your Response:**
-"""
+**Response:**
+`;
 ```
 
-## 6. ChromaDB Knowledge Retrieval
+## 6. Supabase Edge Functions Implementation
 
-### Database Collections
-- **Policy Collection**: "amazon_policies_v3" 
-- **UDP Collection**: "user_profiles_v2"
-- **Embedding Function**: SentenceTransformerEmbeddingFunction(model_name='all-MiniLM-L6-v2')
-
-### Retrieval Functions
-```python
-def get_policy_snippets_from_db(complaint_text, pol_coll, num_golden=2, num_distractors=2):
-    # Query policy database for relevant and distractor policies
-    # Return formatted policy text for prompt inclusion
-
-def get_udp_summary_and_features_from_db(user_id, current_complaint_timestamp_dt, full_tran_hist_df, udp_coll):
-    # Calculate user dynamic profile features
-    # Return summary and feature flags for context
-```
-
-## 7. Firebase Cloud Function Implementation
-
-### Function Configuration
-```python
-@https_fn.on_request(memory=https_fn.MemoryOption.G_B_4, cpu=2, timeout_sec=300)
-def analyzeComplaint(req: https_fn.Request) -> https_fn.Response:
-    # Main endpoint orchestrating the entire process
-```
-
-### Environment Variables Required
-```bash
-export GEMINI_API_KEY="your_gemini_api_key"
-export HUGGINGFACE_TOKEN="your_hf_token"
-```
-
-### Global Caching Strategy
-```python
-# Global variables for model caching (warm starts)
-gemma_model = None
-gemma_tokenizer = None
-gemini_model_instance = None
-policy_collection = None
-udp_collection = None
-tran_hist_df = None
-```
-
-## 8. Frontend Implementation
-
-### Chat Interface Component
+### Main Analysis Function
 ```typescript
-interface Message {
-  sender: 'user' | 'bot';
-  text: string;
-}
+// supabase/functions/analyze-complaint/index.ts
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { HfInference } from 'https://esm.sh/@huggingface/inference@2.3.2';
 
-interface Turn {
-  user: string;
-  bot: string;
-}
+serve(async (req) => {
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
 
-// State management for chat history and turn tracking
-const [displayHistory, setDisplayHistory] = useState<Message[]>([]);
-const [turnHistory, setTurnHistory] = useState<Turn[]>([]);
-```
+  const { userId, complaintText, chatHistory } = await req.json();
 
-### API Communication
-```typescript
-const response = await fetch(functionUrl, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    userId: MOCK_USER_ID,
-    complaintText: complaintText,
-    chatHistory: turnHistory,
-  }),
+  // 1. Search transaction history
+  const { data: transactions } = await supabase
+    .from('transaction_history')
+    .select('*')
+    .eq('user_id', userId)
+    .order('timestamp_review_dt', { ascending: false })
+    .limit(10);
+
+  // 2. Get user profile
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
+
+  // 3. Call Gemma 3-4B for classification
+  const hf = new HfInference(Deno.env.get('HUGGING_FACE_API_KEY'));
+  const gemmaResponse = await hf.textGeneration({
+    model: 'ShovalBenjer/gemma-3-4b-fashion-multitask_A4000_v7',
+    inputs: constructGemmaPrompt(complaintText, transactions, profile),
+    parameters: {
+      max_new_tokens: 512,
+      temperature: 0.1,
+    }
+  });
+
+  // 4. Call Gemini for orchestration
+  // ... orchestration logic
+
+  return new Response(JSON.stringify(result), {
+    headers: { 'Content-Type': 'application/json' }
+  });
 });
 ```
 
-## 9. OpenMCP Integration Strategy
+### Transaction Search Function
+```typescript
+// supabase/functions/search-transactions/index.ts
+export async function searchTransactionHistory(
+  supabase: any,
+  userId: string,
+  searchQuery: string,
+  filters?: {
+    category?: string;
+    timeRange?: string;
+    sentiment?: string;
+  }
+) {
+  let query = supabase
+    .from('transaction_history')
+    .select('*')
+    .eq('user_id', userId);
 
-### MCP Server Setup
-```python
-from mcp.server.fastmcp import FastMCP
+  // Full-text search
+  if (searchQuery) {
+    query = query.textSearch('complaint_body_text', searchQuery);
+  }
 
-mcp = FastMCP("Gemini Orchestrator")
+  // Apply filters
+  if (filters?.category) {
+    query = query.eq('inferred_complaint_driver', filters.category);
+  }
 
-@mcp.tool()
-def search_sql(query: str) -> str:
-    """Search the SQL database with a query"""
-    return f"Results for: {query}"
+  if (filters?.timeRange) {
+    const cutoffDate = new Date();
+    cutoffDate.setDays(cutoffDate.getDate() - parseInt(filters.timeRange));
+    query = query.gte('timestamp_review_dt', cutoffDate.toISOString());
+  }
 
-@mcp.tool()
-def classify_complaint(text: str) -> str:
-    """Classify complaint using Gemma 3"""
-    return "Classification: Sizing Issue"
+  const { data, error } = await query
+    .order('timestamp_review_dt', { ascending: false })
+    .limit(20);
+
+  return { data, error };
+}
 ```
 
-### LLM Orchestration Workflow
-1. **Gemini 2.5 Flash** receives user query
-2. Orchestrates calls to:
-   - SQL search tools (via MCP server)
-   - Gemma 3 classifier for structured outputs
-3. **Gemini** applies decision logic and responds
+## 7. Frontend Implementation
 
-### SOTA Base Prompt for Gemini
+### Chat Interface Component
+```typescript
+// src/components/SoloSolverChat.tsx
+interface ChatMessage {
+  id: string;
+  sender: 'user' | 'bot';
+  content: string;
+  timestamp: Date;
+  metadata?: {
+    classifications?: any;
+    searchResults?: any;
+  };
+}
+
+export const SoloSolverChat = () => {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSendMessage = async (content: string) => {
+    const response = await supabase.functions.invoke('analyze-complaint', {
+      body: {
+        userId: user?.id,
+        complaintText: content,
+        chatHistory: messages.slice(-10) // Last 10 messages for context
+      }
+    });
+
+    // Handle response and update UI
+  };
+
+  return (
+    <div className="flex flex-col h-screen">
+      <div className="flex-1 overflow-y-auto p-4">
+        {messages.map(message => (
+          <ChatMessage key={message.id} message={message} />
+        ))}
+      </div>
+      <ChatInput onSend={handleSendMessage} isLoading={isLoading} />
+    </div>
+  );
+};
 ```
-"You are a customer service LLM assistant. Given the following user message and database/search results, classify the complaint, select the appropriate decision type, and compose a formal response.
 
-Return a JSON object with:
-- complaint_category
-- decision_type
-- emotional_tone
-- suggested_refund_percentage
-- sentiment
-- aggression
-- formal_answer (well-written, user-facing response)
+## 8. Advanced Features & Enhancements
 
-Always justify your decision type and ensure the response is clear, empathetic, and actionable."
+### Gemini Transaction Search Tool
+```typescript
+const searchTool = {
+  name: "search_user_transactions",
+  description: "Search user's transaction and complaint history",
+  parameters: {
+    type: "object",
+    properties: {
+      query: { type: "string", description: "Search query" },
+      category: { type: "string", description: "Filter by complaint category" },
+      timeRange: { type: "string", description: "Time range in days" }
+    }
+  }
+};
 ```
 
-## 10. Deployment Process
+### User Dynamic Profile (UDP) Generation
+```typescript
+async function generateUserProfile(userId: string, supabase: any) {
+  const { data: transactions } = await supabase
+    .from('transaction_history')
+    .select('*')
+    .eq('user_id', userId);
 
-### Local Development Setup
+  const profile = {
+    totalComplaints: transactions.length,
+    avgRating: transactions.reduce((acc, t) => acc + t.rating_review, 0) / transactions.length,
+    commonCategories: getTopCategories(transactions),
+    purchaseFrequency: calculatePurchaseFrequency(transactions),
+    resolutionHistory: getResolutionHistory(transactions),
+    aggressionTendency: detectAggressionPattern(transactions),
+    chronicComplainer: transactions.length > 10 && avgSatisfaction < 3
+  };
+
+  // Update or insert profile
+  await supabase
+    .from('profiles')
+    .upsert({
+      user_id: userId,
+      ...profile,
+      updated_at: new Date().toISOString()
+    });
+
+  return profile;
+}
+```
+
+## 9. Deployment Process
+
+### Supabase Setup
+1. **Database Migration**: Import CSV data into transaction_history table
+2. **Edge Functions Deployment**: Deploy analysis and search functions
+3. **Environment Variables**: Set HuggingFace API key, Gemini API key
+4. **Row Level Security**: Configure appropriate RLS policies
+
+### Frontend Deployment
 ```bash
-# Create virtual environment
-python -m venv dotenv
-source dotenv/bin/activate
-
 # Install dependencies
-pip install -r requirements.txt
+npm install
 
-# Firebase CLI setup
-npm install -g firebase-tools
-firebase login
-firebase init functions
+# Configure Supabase client
+# Update src/integrations/supabase/client.ts with project details
+
+# Deploy to Vercel/Netlify
+npm run build
 ```
 
-### Deployment Commands
-```bash
-# Deploy backend
-firebase deploy --only functions
+## 10. Performance Optimizations
 
-# Get function URL from output
-# Configure frontend with deployed URL
+### Database Optimization
+- Full-text search indexes on complaint content
+- Partitioned tables by date for large datasets
+- Materialized views for user profile calculations
+- Connection pooling for Edge Functions
 
-# Start frontend development
-npm run dev
-```
+### Model Optimization
+- Cached model responses for similar queries
+- Batch processing for multiple classifications
+- Streaming responses for better UX
+- Model quantization for faster inference
 
-## 11. Advanced Features & Enhancements
-
-### LLM as Judge Implementation
-- **Phase 1**: Self-correction via secondary LLM call
-- **Judge Prompt**: Quality assurance for policy compliance and empathy
-- **Logic**: Approve/Reject with re-generation capability
-
-### ReAct (Reason + Act) Agent Loop
-- **Phase 2**: Dynamic tool selection
-- **Actions**: [classify_with_gemma], [lookup_policy], [ask_clarifying_question], [respond_to_user]
-- **Maximum flexibility** for complex decision trees
-
-### Performance Optimizations
-- **Model Caching**: Global variables for warm starts
-- **Batch Processing**: Multiple classification heads in single forward pass
-- **Memory Management**: 4GB function memory allocation
-
-## 12. Database Schema Requirements
-
-### Supabase Tables
-```sql
--- User profiles for authentication
-CREATE TABLE profiles (
-  id UUID PRIMARY KEY,
-  user_id TEXT UNIQUE NOT NULL,
-  email TEXT,
-  name TEXT
-);
-
--- Complaints tracking
-CREATE TABLE complaints (
-  id UUID PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  complaint_text TEXT,
-  category TEXT,
-  status TEXT DEFAULT 'new',
-  created_at TIMESTAMP DEFAULT now()
-);
-```
-
-### RLS Policies
-- Enable Row Level Security on all tables
-- Users can only access their own data
-- Admin roles for cross-user visibility
-
-## 13. Testing & Quality Assurance
-
-### Test Categories
-- **Unit Tests**: Individual function validation
-- **Integration Tests**: Full pipeline testing
-- **Performance Tests**: Response time benchmarks
-- **Accuracy Tests**: Classification validation
-
-### Monitoring & Logging
-- Firebase Function logs for debugging
-- Classification accuracy tracking
-- Response time monitoring
-- User satisfaction metrics
-
-## 14. Security Considerations
-
-### API Security
-- Input validation and sanitization
-- Rate limiting on Firebase Functions
-- Secure API key management
+## 11. Security & Compliance
 
 ### Data Privacy
-- User data encryption at rest
-- Minimal data retention policies
+- Row Level Security for user data isolation
+- Encrypted data at rest and in transit
 - GDPR compliance measures
+- Audit logs for all data access
 
-## 15. Scalability Planning
+### API Security
+- Rate limiting on Edge Functions
+- Input validation and sanitization
+- Secure API key management
+- CORS configuration
 
-### Horizontal Scaling
-- Firebase automatic scaling
-- ChromaDB cluster configuration
-- Load balancing strategies
+## 12. Monitoring & Analytics
 
-### Cost Optimization
-- Function cold start mitigation
-- Efficient model loading
-- Database query optimization
+### Performance Metrics
+- Response time tracking
+- Classification accuracy monitoring
+- User satisfaction scores
+- System uptime and reliability
 
-This comprehensive plan provides all necessary technical specifications, configurations, and implementation details for building the SoloSolver AI complaint resolution system with dual-LLM architecture, ChromaDB integration, and advanced features like OpenMCP orchestration.
+### Business Intelligence
+- Complaint trend analysis
+- Resolution effectiveness metrics
+- User behavior patterns
+- Cost per resolution tracking
+
+This comprehensive plan provides the foundation for building the SoloSolver AI complaint resolution system using Supabase as the backend platform, with transaction history search capabilities and dual-LLM architecture for optimal performance.
