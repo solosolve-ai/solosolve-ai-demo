@@ -173,16 +173,16 @@ const SoloSolverChat: React.FC<SoloSolverChatProps> = ({ currentUser }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-950 via-purple-900 to-slate-900">
-      <div className="relative z-10 flex flex-col h-screen">
+    <div className="min-h-screen w-full bg-gradient-to-br from-purple-950 via-purple-900 to-slate-900">
+      <div className="relative z-10 flex flex-col min-h-screen w-full">
         <ChatHeader currentUser={currentUser} sessionId={sessionId} />
 
         {/* Main Content */}
-        <div className="flex-1 flex max-w-6xl mx-auto w-full">
+        <div className="flex-1 flex max-w-6xl mx-auto w-full bg-transparent">
           {/* Chat Area */}
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col bg-transparent">
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-transparent">
               {messages.map((message) => (
                 <ChatMessage key={message.id} message={message} />
               ))}
