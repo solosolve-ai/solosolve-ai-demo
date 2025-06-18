@@ -63,8 +63,30 @@ serve(async (req) => {
       .eq('user_id', userId)
       .single();
 
-    // 3. Call Gemma 3-4B for classification
-    const gemmaPrompt = `
+    // 3. Determine complaint characteristics for better classification
+    const complaintLength = complaintText.length;
+    const hasSpecificDetails = /order|product|delivery|size|color|quality|damaged|broken|wrong/i.test(complaintText);
+    const hasEmotionalWords = /angry|frustrated|disappointed|upset|terrible|awful|hate|love|amazing/i.test(complaintText);
+    
+    // Create fallback classification based on complaint analysis
+    const fallbackClassification: GemmaClassification = {
+      is_actionable: complaintLength > 20 && hasSpecificDetails,
+      complaint_category: hasSpecificDetails ? "Product Issue" : "General Inquiry",
+      decision_recommendation: hasSpecificDetails ? "Further_Information_Required" : "Provide_Policy_Information",
+      info_complete: complaintLength > 50 && hasSpecificDetails,
+      tone: hasEmotionalWords ? "Empathetic_Standard" : "Neutral_Direct",
+      refund_percentage: hasSpecificDetails && hasEmotionalWords ? 50 : 0,
+      sentiment: hasEmotionalWords ? "negative" : "neutral",
+      aggression: hasEmotionalWords ? "medium" : "low",
+      reasoning: `Classified based on complaint content analysis: ${complaintLength} characters, specific details: ${hasSpecificDetails}, emotional content: ${hasEmotionalWords}`
+    };
+
+    // 4. Try Gemma classification (will use fallback if it fails)
+    let gemmaResponse: GemmaClassification = fallbackClassification;
+    let gemmaReasoning = fallbackClassification.reasoning;
+
+    try {
+      const gemmaPrompt = `
 <start_of_turn>user
 You are a specialized AI classifier for customer complaints. Analyze the following complaint and provide structured classification.
 
@@ -89,10 +111,6 @@ Provide your analysis in this exact JSON format:
 <start_of_turn>model
 `;
 
-    let gemmaResponse: GemmaClassification | null = null;
-    let gemmaReasoning = "";
-
-    try {
       const huggingFaceResponse = await fetch(
         'https://api-inference.huggingface.co/models/ShovalBenjer/gemma-3-4b-fashion-multitask_A4000_v7',
         {
@@ -120,21 +138,11 @@ Provide your analysis in this exact JSON format:
         const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           try {
-            gemmaResponse = JSON.parse(jsonMatch[0]);
-            gemmaReasoning = gemmaResponse?.reasoning || "No reasoning provided";
+            const parsedResponse = JSON.parse(jsonMatch[0]);
+            gemmaResponse = parsedResponse;
+            gemmaReasoning = parsedResponse.reasoning || "Classification completed successfully";
           } catch (parseError) {
             console.error('Failed to parse Gemma JSON:', parseError);
-            gemmaResponse = {
-              is_actionable: true,
-              complaint_category: "Other",
-              decision_recommendation: "Further_Information_Required",
-              info_complete: false,
-              tone: "Empathetic_Standard",
-              refund_percentage: 0,
-              sentiment: "negative",
-              aggression: "none",
-              reasoning: "Failed to parse classification"
-            };
           }
         }
       }
@@ -142,36 +150,66 @@ Provide your analysis in this exact JSON format:
       console.error('Gemma API error:', error);
     }
 
-    // 4. Call Gemini for orchestrated response
-    const geminiPrompt = `
-You are "SoloSolver", a professional customer service AI assistant representing our company. You must respond in a formal, courteous, and professional manner appropriate for business correspondence.
+    // 5. Generate appropriate Gemini prompt based on classification and complaint content
+    const generateContextualPrompt = () => {
+      const hasTransactionHistory = searchResults && searchResults.length > 0;
+      const isSpecificComplaint = gemmaResponse.is_actionable && gemmaResponse.info_complete;
+      
+      if (complaintText.toLowerCase().includes('hello') || complaintText.length < 10) {
+        return `You are "SoloSolver", a professional customer service AI assistant. The customer has just said "${complaintText}". 
+
+Respond with a warm, professional greeting and ask them to describe their specific concern or complaint so you can assist them properly.
+
+Keep the response professional but friendly, and encourage them to share details about any issues they're experiencing.`;
+      }
+
+      if (!isSpecificComplaint) {
+        return `You are "SoloSolver", a professional customer service AI assistant. A customer has contacted you saying: "${complaintText}"
+
+This appears to be a general inquiry that needs more specific information. 
+
+Respond professionally by:
+1. Acknowledging their concern
+2. Explaining that you need more specific details to help them effectively
+3. Ask for relevant information such as:
+   - Order number (if applicable)
+   - Product details
+   - Specific issue they're experiencing
+   - When the issue occurred
+
+Be helpful and guide them to provide the information you need to assist them properly.`;
+      }
+
+      return `You are "SoloSolver", a professional customer service AI assistant representing our company. You must respond in a formal, courteous, and professional manner appropriate for business correspondence.
 
 **Current Customer Inquiry:**
 "${complaintText}"
 
 **AI Classification Analysis:**
-${gemmaResponse ? JSON.stringify(gemmaResponse, null, 2) : 'Classification unavailable'}
+${JSON.stringify(gemmaResponse, null, 2)}
 
 **Customer Profile & History:**
 ${profile ? JSON.stringify(profile, null, 2) : 'No profile available'}
 
 **Relevant Transaction History:**
-${searchResults && searchResults.length > 0 ? JSON.stringify(searchResults, null, 2) : 'No relevant transactions found'}
+${hasTransactionHistory ? JSON.stringify(searchResults, null, 2) : 'No relevant transactions found'}
 
 **Instructions:**
 1. Respond in a professional, formal tone appropriate for customer service
 2. Address the customer courteously (use "Dear Valued Customer" or similar)
-3. Acknowledge their concern with empathy
-4. Reference specific transaction history when relevant
-5. Provide clear, actionable next steps
+3. Acknowledge their specific concern with empathy
+4. ${hasTransactionHistory ? 'Reference their transaction history when relevant' : 'Note that you are reviewing their account for relevant information'}
+5. Provide clear, actionable next steps based on the complaint classification
 6. Use proper business letter formatting
 7. Sign off professionally as "SoloSolver Customer Care Team"
 8. If offering refunds/exchanges, be specific about terms and conditions
 9. If escalation is needed, explain the process clearly
 10. Maintain a helpful, solution-oriented approach
 
-Please provide a complete, professional customer service response:
-`;
+Please provide a complete, professional customer service response:`;
+    };
+
+    const geminiPrompt = generateContextualPrompt();
 
     try {
       const geminiResponse = await fetch(
@@ -209,10 +247,10 @@ Please provide a complete, professional customer service response:
 
       if (geminiResult?.candidates?.[0]?.content?.parts?.[0]?.text) {
         finalResponse = geminiResult.candidates[0].content.parts[0].text;
-        geminiReasoning = `Generated formal response based on complaint category: ${gemmaResponse?.complaint_category}, sentiment: ${gemmaResponse?.sentiment}, recommended action: ${gemmaResponse?.decision_recommendation}`;
+        geminiReasoning = `Generated contextual response based on complaint analysis and classification`;
       }
 
-      // 5. Store the interaction for admin review
+      // 6. Store the interaction for admin review
       const { error: insertError } = await supabase
         .from('ai_interactions')
         .insert({
