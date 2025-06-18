@@ -1,9 +1,10 @@
+
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ComplaintCard } from "@/components/ComplaintCard";
 import { FilterBar } from "@/components/FilterBar";
 import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Home } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const complaints = [
@@ -100,14 +101,25 @@ const UserComplaints = () => {
         <main className="flex-1 p-8">
           <div className="max-w-7xl mx-auto">
             <header className="mb-8">
-              <button 
-                onClick={() => navigate('/user')}
-                className="mb-4 p-2 rounded-full hover:bg-gray-200 transition-colors inline-flex items-center gap-2"
-                aria-label="Back to dashboard"
-              >
-                <ArrowLeft className="h-5 w-5" />
-                <span>Back to Dashboard</span>
-              </button>
+              <div className="flex gap-4 mb-4">
+                <button 
+                  onClick={() => navigate('/user')}
+                  className="p-2 rounded-full hover:bg-gray-200 transition-colors inline-flex items-center gap-2"
+                  aria-label="Back to dashboard"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                  <span>Back to Dashboard</span>
+                </button>
+                
+                <button 
+                  onClick={() => navigate('/')}
+                  className="p-2 rounded-full hover:bg-gray-200 transition-colors inline-flex items-center gap-2 bg-blue-50 border border-blue-200"
+                  aria-label="Back to home"
+                >
+                  <Home className="h-5 w-5" />
+                  <span>חזרה לאתר הראשי</span>
+                </button>
+              </div>
               <h1 className="text-3xl font-bold text-navy">My Complaints</h1>
               <p className="text-gray-600 mt-2">View and manage your complaints</p>
             </header>

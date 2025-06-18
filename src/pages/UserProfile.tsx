@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Home } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,14 +51,25 @@ const UserProfile: React.FC<UserProfileProps> = ({ currentUser }) => {
 
   return (
     <div className="container mx-auto p-6">
-      <button 
-        onClick={() => navigate('/user/dashboard')}
-        className="mb-6 p-2 rounded-full hover:bg-gray-200 transition-colors inline-flex items-center gap-2"
-        aria-label="Back to dashboard"
-      >
-        <ArrowLeft className="h-5 w-5" />
-        <span>Back to Dashboard</span>
-      </button>
+      <div className="flex gap-4 mb-6">
+        <button 
+          onClick={() => navigate('/user/dashboard')}
+          className="p-2 rounded-full hover:bg-gray-200 transition-colors inline-flex items-center gap-2"
+          aria-label="Back to dashboard"
+        >
+          <ArrowLeft className="h-5 w-5" />
+          <span>Back to Dashboard</span>
+        </button>
+        
+        <button 
+          onClick={() => navigate('/')}
+          className="p-2 rounded-full hover:bg-gray-200 transition-colors inline-flex items-center gap-2 bg-blue-50 border border-blue-200"
+          aria-label="Back to home"
+        >
+          <Home className="h-5 w-5" />
+          <span>חזרה לאתר הראשי</span>
+        </button>
+      </div>
 
       <h1 className="text-3xl font-bold mb-6">My Profile</h1>
       
