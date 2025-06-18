@@ -1,37 +1,21 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { ArrowLeft, Bot, User } from "lucide-react";
-import { Link } from "react-router-dom";
 import { PromptInput } from "@/components/PromptInput";
 import { AIAgentProgress } from "@/components/AIAgentProgress";
+import { ChatHeader } from "@/components/ChatHeader";
+import { ChatMessage } from "@/components/ChatMessage";
+import { LoadingMessage } from "@/components/LoadingMessage";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { AgentTask } from "@/components/AIAgentProgress";
-
-interface SimulatedUser {
-  id: string;
-  user_id: string;
-  name: string;
-  email: string;
-  role: string;
-}
-
-interface ChatMessage {
-  id: string;
-  sender: 'user' | 'bot';
-  content: string;
-  timestamp: Date;
-  metadata?: any;
-}
+import type { SimulatedUser, ChatMessage as ChatMessageType } from "@/types/chat";
 
 interface SoloSolverChatProps {
   currentUser: SimulatedUser;
 }
 
 const SoloSolverChat: React.FC<SoloSolverChatProps> = ({ currentUser }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([
+  const [messages, setMessages] = useState<ChatMessageType[]>([
     {
       id: '1',
       sender: 'bot',
@@ -53,14 +37,10 @@ const SoloSolverChat: React.FC<SoloSolverChatProps> = ({ currentUser }) => {
     scrollToBottom();
   }, [messages]);
 
-  const updateAgentTasks = (newTasks: AgentTask[]) => {
-    setAgentTasks(newTasks);
-  };
-
   const handleSendMessage = async (content: string, files?: FileList) => {
     if (!content.trim()) return;
 
-    const userMessage: ChatMessage = {
+    const userMessage: ChatMessageType = {
       id: Date.now().toString(),
       sender: 'user',
       content: content.trim(),
@@ -143,7 +123,7 @@ const SoloSolverChat: React.FC<SoloSolverChatProps> = ({ currentUser }) => {
           : task
       ));
 
-      const botMessage: ChatMessage = {
+      const botMessage: ChatMessageType = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
         content: data.response || "I apologize, but I'm experiencing technical difficulties. Please contact our support team directly for assistance.",
@@ -173,7 +153,7 @@ const SoloSolverChat: React.FC<SoloSolverChatProps> = ({ currentUser }) => {
           : task
       ));
 
-      const errorMessage: ChatMessage = {
+      const errorMessage: ChatMessageType = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
         content: "Dear Valued Customer,\n\nI apologize for the technical difficulty we are currently experiencing. Our technical team has been notified and is working to resolve this issue promptly.\n\nIn the meantime, please feel free to contact our customer service team directly at support@company.com or call our helpline for immediate assistance.\n\nThank you for your patience and understanding.\n\nBest regards,\nSoloSolver Customer Care Team",
@@ -192,36 +172,10 @@ const SoloSolverChat: React.FC<SoloSolverChatProps> = ({ currentUser }) => {
     }
   };
 
-  const getBackPath = () => {
-    if (currentUser.role === 'admin') return '/admin/dashboard';
-    if (currentUser.role === 'manager') return '/manager/dashboard';
-    return '/user/dashboard';
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-950 via-purple-900 to-slate-900">
       <div className="relative z-10 flex flex-col h-screen">
-        {/* Header */}
-        <div className="p-4 border-b border-white/20 bg-black/20 backdrop-blur">
-          <div className="flex items-center justify-between max-w-6xl mx-auto">
-            <div className="flex items-center space-x-4">
-              <Link to={getBackPath()}>
-                <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-xl font-semibold text-white">SoloSolver AI Assistant</h1>
-                <p className="text-sm text-white/70">Customer: {currentUser.name}</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-white/70">Session ID</p>
-              <p className="text-xs text-white/50 font-mono">{sessionId}</p>
-            </div>
-          </div>
-        </div>
+        <ChatHeader currentUser={currentUser} sessionId={sessionId} />
 
         {/* Main Content */}
         <div className="flex-1 flex max-w-6xl mx-auto w-full">
@@ -230,51 +184,10 @@ const SoloSolverChat: React.FC<SoloSolverChatProps> = ({ currentUser }) => {
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`flex items-start space-x-2 max-w-[80%] ${message.sender === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                      message.sender === 'user' 
-                        ? 'bg-purple-600 text-white' 
-                        : 'bg-white/20 backdrop-blur text-white'
-                    }`}>
-                      {message.sender === 'user' ? (
-                        <User className="h-4 w-4" />
-                      ) : (
-                        <Bot className="h-4 w-4" />
-                      )}
-                    </div>
-                    <div className={`p-4 rounded-lg ${
-                      message.sender === 'user'
-                        ? 'bg-purple-600 text-white border border-purple-500'
-                        : 'bg-white/10 backdrop-blur border border-white/20 text-white'
-                    }`}>
-                      <div className="whitespace-pre-wrap text-sm">{message.content}</div>
-                      <div className="mt-2 text-xs opacity-70">
-                        {message.timestamp.toLocaleTimeString()}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <ChatMessage key={message.id} message={message} />
               ))}
               
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="flex items-start space-x-2 max-w-[80%]">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-white/20 backdrop-blur text-white">
-                      <Bot className="h-4 w-4" />
-                    </div>
-                    <div className="p-4 rounded-lg bg-white/10 backdrop-blur border border-white/20 text-white">
-                      <div className="flex items-center space-x-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        <span className="text-sm">Processing your request...</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+              {isLoading && <LoadingMessage />}
               
               <div ref={messagesEndRef} />
             </div>
