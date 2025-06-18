@@ -92,7 +92,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             disabled={disabled}
-            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex-1 bg-transparent text-sm text-white placeholder:text-white/60 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           />
           <Button
             type="submit"
