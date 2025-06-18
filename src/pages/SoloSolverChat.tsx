@@ -1,12 +1,15 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { PromptInput } from "@/components/PromptInput";
+import { EnhancedPromptInput } from "@/components/EnhancedPromptInput";
+import { FeedbackDialog } from "@/components/FeedbackDialog";
 import { AIAgentProgress } from "@/components/AIAgentProgress";
 import { ChatHeader } from "@/components/ChatHeader";
 import { ChatMessage } from "@/components/ChatMessage";
 import { LoadingMessage } from "@/components/LoadingMessage";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Star } from "lucide-react";
 import type { AgentTask } from "@/components/AIAgentProgress";
 import type { SimulatedUser, ChatMessage as ChatMessageType } from "@/types/chat";
 
@@ -19,13 +22,15 @@ const SoloSolverChat: React.FC<SoloSolverChatProps> = ({ currentUser }) => {
     {
       id: '1',
       sender: 'bot',
-      content: `Dear ${currentUser.name},\n\nWelcome to SoloSolver Customer Care. I am here to assist you with any complaints or concerns you may have regarding your recent purchases or experiences with our services.\n\nPlease describe the issue you are experiencing, and I will do my best to provide you with a prompt and satisfactory resolution.\n\nBest regards,\nSoloSolver Customer Care Team`,
+      content: `שלום ${currentUser.name},\n\nברוכים הבאים לשירות לקוחות SoloSolver. אני כאן כדי לסייע לכם עם כל תלונה או דאגה שיש לכם בנוגע לרכישות האחרונות שלכם או חוויות עם השירותים שלנו.\n\nאנא תארו את הבעיה שאתם חווים, ואני אעשה כל שביכולתי כדי לספק לכם פתרון מהיר ומספק.\n\nבברכה,\nצוות שירות הלקוחות SoloSolver`,
       timestamp: new Date(),
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [agentTasks, setAgentTasks] = useState<AgentTask[]>([]);
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
+  const [conversationEnded, setConversationEnded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -54,22 +59,22 @@ const SoloSolverChat: React.FC<SoloSolverChatProps> = ({ currentUser }) => {
     const initialTasks: AgentTask[] = [
       {
         id: 'classify',
-        title: 'Analyzing complaint',
-        description: 'Using Gemma 3-4B to classify complaint type and sentiment',
+        title: 'מנתח את התלונה',
+        description: 'משתמש ב-Gemma 3-4B לסיווג סוג התלונה ותחושות',
         status: 'in-progress',
         tools: ['gemma-classifier']
       },
       {
         id: 'search',
-        title: 'Searching transaction history',
-        description: 'Finding relevant past transactions and complaints',
+        title: 'חיפוש היסטוריית עסקאות',
+        description: 'מחפש עסקאות קודמות ותלונות רלוונטיות',
         status: 'pending',
         tools: ['supabase-search']
       },
       {
         id: 'orchestrate',
-        title: 'Generating response',
-        description: 'Creating personalized solution using Gemini',
+        title: 'יצירת תגובה',
+        description: 'יוצר פתרון מותאם אישית באמצעות Gemini',
         status: 'pending',
         tools: ['gemini-orchestrator']
       }
@@ -126,7 +131,7 @@ const SoloSolverChat: React.FC<SoloSolverChatProps> = ({ currentUser }) => {
       const botMessage: ChatMessageType = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
-        content: data.response || "I apologize, but I'm experiencing technical difficulties. Please contact our support team directly for assistance.",
+        content: data.response || "אני מתנצל, אבל אני חווה קשיים טכניים. אנא צור קשר עם צוות התמיכה שלנו ישירות לקבלת סיוע.",
         timestamp: new Date(),
         metadata: {
           classifications: data.classifications,
@@ -138,8 +143,8 @@ const SoloSolverChat: React.FC<SoloSolverChatProps> = ({ currentUser }) => {
 
       if (data.classifications) {
         toast({
-          title: "Analysis Complete",
-          description: `Complaint classified as: ${data.classifications.complaint_category}`,
+          title: "ניתוח הושלם",
+          description: `התלונה סווגה כ: ${data.classifications.complaint_category}`,
         });
       }
 
@@ -156,20 +161,38 @@ const SoloSolverChat: React.FC<SoloSolverChatProps> = ({ currentUser }) => {
       const errorMessage: ChatMessageType = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
-        content: "Dear Valued Customer,\n\nI apologize for the technical difficulty we are currently experiencing. Our technical team has been notified and is working to resolve this issue promptly.\n\nIn the meantime, please feel free to contact our customer service team directly at support@company.com or call our helpline for immediate assistance.\n\nThank you for your patience and understanding.\n\nBest regards,\nSoloSolver Customer Care Team",
+        content: "לקוח יקר,\n\nאני מתנצל על הקושי הטכני שאנו חווים כעת. הצוות הטכני שלנו קיבל הודעה ופועל לפתרון מהיר של הבעיה.\n\nבינתיים, אנא פנה לצוות שירות הלקוחות שלנו ישירות בכתובת support@company.com או התקשר לקו הסיוע שלנו לקבלת סיוע מיידי.\n\nתודה על הסבלנות וההבנה.\n\nבברכה,\nצוות שירות הלקוחות SoloSolver",
         timestamp: new Date(),
       };
 
       setMessages(prev => [...prev, errorMessage]);
       
       toast({
-        title: "Connection Error",
-        description: "Unable to process your request. Please try again.",
+        title: "שגיאת חיבור",
+        description: "לא ניתן לעבד את הבקשה. אנא נסה שוב.",
         variant: "destructive"
       });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleEndConversation = () => {
+    setShowFeedbackDialog(true);
+  };
+
+  const handleFeedbackSubmit = (rating: number, feedback?: string) => {
+    console.log('Feedback submitted:', { rating, feedback, sessionId });
+    
+    toast({
+      title: "תודה על הפידבק!",
+      description: `דירגת את השירות ${rating}/10. התגובה שלך חשובה לנו.`,
+    });
+    
+    setConversationEnded(true);
+    
+    // Here you could send the feedback to your backend
+    // await supabase.functions.invoke('submit-feedback', { body: { rating, feedback, sessionId } });
   };
 
   return (
@@ -192,16 +215,41 @@ const SoloSolverChat: React.FC<SoloSolverChatProps> = ({ currentUser }) => {
               <div ref={messagesEndRef} />
             </div>
 
+            {/* End Conversation Button */}
+            {messages.length > 1 && !conversationEnded && (
+              <div className="p-4 border-t border-white/20 bg-black/20 backdrop-blur">
+                <div className="flex justify-center mb-4">
+                  <Button
+                    onClick={handleEndConversation}
+                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg flex items-center gap-2"
+                  >
+                    <Star className="h-4 w-4" />
+                    סיים שיחה ודרג פתרון
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Input */}
-            <div className="p-4 border-t border-white/20 bg-black/20 backdrop-blur">
-              <PromptInput
-                placeholder="Describe your complaint or concern..."
-                onSubmit={handleSendMessage}
-                onFileUpload={(files) => handleSendMessage("Uploaded files for review", files)}
-                disabled={isLoading}
-                className="bg-white/10 backdrop-blur border-white/20 text-white placeholder:text-white/60"
-              />
-            </div>
+            {!conversationEnded && (
+              <div className="p-4 border-t border-white/20 bg-black/20 backdrop-blur">
+                <EnhancedPromptInput
+                  placeholder="תאר את התלונה או הבעיה שלך בפירוט..."
+                  onSubmit={handleSendMessage}
+                  onFileUpload={(files) => handleSendMessage("קבצים הועלו לבדיקה", files)}
+                  disabled={isLoading}
+                  className="bg-white/10 backdrop-blur border-white/20 text-white placeholder:text-white/60"
+                />
+              </div>
+            )}
+
+            {conversationEnded && (
+              <div className="p-4 border-t border-white/20 bg-black/20 backdrop-blur">
+                <div className="text-center text-white/70">
+                  <p>השיחה הסתיימה. תודה שפנית אלינו!</p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Agent Progress Sidebar */}
@@ -215,6 +263,13 @@ const SoloSolverChat: React.FC<SoloSolverChatProps> = ({ currentUser }) => {
           )}
         </div>
       </div>
+
+      {/* Feedback Dialog */}
+      <FeedbackDialog
+        isOpen={showFeedbackDialog}
+        onClose={() => setShowFeedbackDialog(false)}
+        onSubmit={handleFeedbackSubmit}
+      />
     </div>
   );
 };
